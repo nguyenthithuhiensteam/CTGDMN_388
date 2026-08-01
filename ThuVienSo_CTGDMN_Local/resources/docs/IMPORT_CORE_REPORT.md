@@ -2,7 +2,7 @@
 
 ## Báo cáo import dữ liệu lõi CT388
 
-- Thời điểm import: `2026-08-01 15:21:09`
+- Thời điểm import: `2026-08-01 15:47:09`
 - Phạm vi: chỉ import sheet lõi; không import hồ sơ cá nhân, portfolio, bảng kiểm lớp, nhật ký quan sát.
 - Cơ chế chạy lại: xóa dữ liệu lõi cũ trong các bảng import trước khi nạp lại, để tránh trùng lặp.
 
@@ -153,6 +153,8 @@
 | `month_plans` | 0 |
 | `week_plans` | 0 |
 | `day_plans` | 0 |
+| `schools` | 0 |
+| `users` | 0 |
 | `children` | 0 |
 | `observations` | 0 |
 | `assessments` | 0 |

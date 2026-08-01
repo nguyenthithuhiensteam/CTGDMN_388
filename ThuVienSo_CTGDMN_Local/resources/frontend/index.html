@@ -38,6 +38,7 @@
     <button class="school-pill" id="school-pill-btn" onclick="openSchoolSetup()" title="Đổi tên trường"><i class="ti ti-school" style="font-size:14px"></i> <span id="school-pill-name">Cài đặt trường</span></button>
     <button class="tbtn" onclick="openAiSettings()" title="Cài đặt Anthropic API key cho Trợ lý AI"><i class="ti ti-key"></i> Cài đặt AI</button>
     <button class="tbtn" id="btn-search" onclick="toggleSearch()"><i class="ti ti-search"></i> Tìm kiếm</button>
+    <button class="tbtn" onclick="doLogout()" title="Đăng xuất"><i class="ti ti-logout"></i> Đăng xuất</button>
     <button class="tbtn" onclick="goPage('download')"><i class="ti ti-download"></i> Tải hồ sơ</button>
     <button class="tbtn" onclick="openPrint()"><i class="ti ti-printer"></i> In KH</button>
   </div>
@@ -555,8 +556,43 @@
 </div><!-- end content -->
 </div><!-- end wrap -->
 
+<!-- AUTH OVERLAY (đăng nhập / đăng ký trường) -->
+<div id="auth-overlay" style="display:none">
+  <div id="auth-box" class="setup-box">
+    <div class="setup-logo">🎓</div>
+    <div class="setup-title">Chương trình GDMN Thí điểm 2026</div>
+    <div class="setup-sub">Thư viện số CTGDMN · Mỗi trường một tài khoản riêng</div>
+
+    <div id="auth-login-form">
+      <div class="setup-lbl">Email</div>
+      <input id="auth-login-email" class="setup-inp" type="email" placeholder="email@truong.vn" />
+      <div class="setup-lbl">Mật khẩu</div>
+      <input id="auth-login-password" class="setup-inp" type="password" placeholder="Mật khẩu" />
+      <div id="auth-login-error" style="color:var(--rd,#C62828);font-size:12px;margin:4px 0"></div>
+      <button class="setup-btn" onclick="doLogin()">🔐 Đăng nhập</button>
+      <span class="setup-skip" onclick="showAuthForm('register')">Trường chưa có tài khoản? Đăng ký</span>
+    </div>
+
+    <div id="auth-register-form" style="display:none">
+      <div class="setup-lbl">Tên trường</div>
+      <input id="auth-reg-school" class="setup-inp" placeholder="VD: Trường MN Hoa Sen" maxlength="80" />
+      <div class="setup-lbl">Tỉnh / Thành phố</div>
+      <input id="auth-reg-city" class="setup-inp" placeholder="VD: Hà Nội" maxlength="50" />
+      <div class="setup-lbl">Họ tên hiệu trưởng/quản trị</div>
+      <input id="auth-reg-name" class="setup-inp" placeholder="Họ và tên" maxlength="80" />
+      <div class="setup-lbl">Email quản trị</div>
+      <input id="auth-reg-email" class="setup-inp" type="email" placeholder="email@truong.vn" />
+      <div class="setup-lbl">Mật khẩu (tối thiểu 6 ký tự)</div>
+      <input id="auth-reg-password" class="setup-inp" type="password" placeholder="Mật khẩu" />
+      <div id="auth-register-error" style="color:var(--rd,#C62828);font-size:12px;margin:4px 0"></div>
+      <button class="setup-btn" onclick="doRegisterSchool()">🚀 Đăng ký trường</button>
+      <span class="setup-skip" onclick="showAuthForm('login')">Đã có tài khoản? Đăng nhập</span>
+    </div>
+  </div>
+</div>
+
 <!-- SCHOOL SETUP OVERLAY -->
-<div id="setup-overlay">
+<div id="setup-overlay" style="display:none">
   <div id="setup-box">
     <div class="setup-logo">🎓</div>
     <div class="setup-title">Chương trình GDMN Thí điểm 2026</div>

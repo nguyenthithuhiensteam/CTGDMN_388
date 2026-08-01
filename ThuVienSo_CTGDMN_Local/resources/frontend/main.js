@@ -1628,7 +1628,7 @@ async function generateGiaoAn(){
     statusEl.textContent = 'AI đang soạn giáo án ⏳';
     var resp = await fetch('http://127.0.0.1:8000/api/ai/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:Object.assign({'Content-Type':'application/json'},authHeaders()),
       body: JSON.stringify({
         model:'claude-sonnet-5',
         max_tokens:3000,
@@ -1703,7 +1703,7 @@ async function sendFollowupMsg(q){
   try {
     var resp = await fetch('http://127.0.0.1:8000/api/ai/messages',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:Object.assign({'Content-Type':'application/json'},authHeaders()),
       body:JSON.stringify({
         model:'claude-sonnet-5',
         max_tokens:1500,
@@ -1869,9 +1869,7 @@ function loadSchoolData(){
     SCHOOL_CITY = localStorage.getItem('gdmn_school_city') || '';
   } catch(e){}
   updateSchoolPill();
-  if(SCHOOL_NAME) {
-    document.getElementById('setup-overlay').style.display='none';
-  }
+  document.getElementById('setup-overlay').style.display = SCHOOL_NAME ? 'none' : 'flex';
 }
 
 function updateSchoolPill(){
@@ -1953,7 +1951,7 @@ function saveAiApiKey(){
   if(!key){ toast('Vui lòng nhập API key'); return; }
   fetch('http://127.0.0.1:8000/api/ai/config',{
     method:'POST',
-    headers:{'Content-Type':'application/json'},
+    headers:Object.assign({'Content-Type':'application/json'},authHeaders()),
     body: JSON.stringify({api_key:key})
   })
     .then(function(r){ return r.json().then(function(data){ return {ok:r.ok, data:data}; }); })
@@ -2597,7 +2595,120 @@ window.togglePlanDataItem=togglePlanDataItem;
 window.renderPlanPreview=renderPlanPreview;
 window.resetPlanWizard=resetPlanWizard;
 window.copyPlanDraft=copyPlanDraft;
-loadSchoolData();
+
+// ─── AUTH GATE (đăng nhập theo trường) ─────────────────────────────────────
+var CURRENT_ACCOUNT = null;
+
+function getAuthToken(){
+  try { return localStorage.getItem('gdmn_auth_token') || ''; } catch(e){ return ''; }
+}
+function setAuthToken(token){
+  try { localStorage.setItem('gdmn_auth_token', token); } catch(e){}
+}
+function clearAuthToken(){
+  try { localStorage.removeItem('gdmn_auth_token'); } catch(e){}
+}
+function authHeaders(){
+  var token = getAuthToken();
+  return token ? {'Authorization':'Bearer '+token} : {};
+}
+
+function showAuthForm(which){
+  document.getElementById('auth-login-form').style.display = which==='login' ? 'block' : 'none';
+  document.getElementById('auth-register-form').style.display = which==='register' ? 'block' : 'none';
+}
+
+function showAuthOverlay(){
+  document.getElementById('auth-overlay').style.display = 'flex';
+}
+function hideAuthOverlay(){
+  document.getElementById('auth-overlay').style.display = 'none';
+}
+
+function doLogin(){
+  var email = document.getElementById('auth-login-email').value.trim();
+  var password = document.getElementById('auth-login-password').value;
+  var errEl = document.getElementById('auth-login-error');
+  errEl.textContent = '';
+  if(!email || !password){ errEl.textContent = 'Vui lòng nhập email và mật khẩu'; return; }
+  fetch('http://127.0.0.1:8000/api/auth/login',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({email:email, password:password})
+  })
+    .then(function(r){ return r.json().then(function(data){ return {ok:r.ok, data:data}; }); })
+    .then(function(res){
+      if(!res.ok) throw new Error(res.data.detail || 'Đăng nhập thất bại');
+      onAuthSuccess(res.data);
+    })
+    .catch(function(e){ errEl.textContent = e.message; });
+}
+
+function doRegisterSchool(){
+  var school_name = document.getElementById('auth-reg-school').value.trim();
+  var city = document.getElementById('auth-reg-city').value.trim();
+  var admin_full_name = document.getElementById('auth-reg-name').value.trim();
+  var admin_email = document.getElementById('auth-reg-email').value.trim();
+  var admin_password = document.getElementById('auth-reg-password').value;
+  var errEl = document.getElementById('auth-register-error');
+  errEl.textContent = '';
+  if(!school_name || !admin_email || admin_password.length < 6){
+    errEl.textContent = 'Vui lòng nhập tên trường, email và mật khẩu tối thiểu 6 ký tự';
+    return;
+  }
+  fetch('http://127.0.0.1:8000/api/auth/register-school',{
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({school_name:school_name, city:city, admin_full_name:admin_full_name, admin_email:admin_email, admin_password:admin_password})
+  })
+    .then(function(r){ return r.json().then(function(data){ return {ok:r.ok, data:data}; }); })
+    .then(function(res){
+      if(!res.ok) throw new Error(res.data.detail || 'Đăng ký thất bại');
+      onAuthSuccess(res.data);
+    })
+    .catch(function(e){ errEl.textContent = e.message; });
+}
+
+function onAuthSuccess(authData){
+  setAuthToken(authData.token);
+  CURRENT_ACCOUNT = authData;
+  try { if(authData.school_name) localStorage.setItem('gdmn_school_name', authData.school_name); } catch(e){}
+  hideAuthOverlay();
+  bootApp();
+}
+
+function doLogout(){
+  clearAuthToken();
+  CURRENT_ACCOUNT = null;
+  location.reload();
+}
+
+function bootApp(){
+  loadSchoolData();
+}
+
+function checkAuthAndBoot(){
+  var token = getAuthToken();
+  if(!token){ showAuthForm('login'); showAuthOverlay(); return; }
+  fetch('http://127.0.0.1:8000/api/auth/me', {headers: authHeaders()})
+    .then(function(r){ if(!r.ok) throw new Error('invalid'); return r.json(); })
+    .then(function(me){
+      CURRENT_ACCOUNT = me;
+      try { if(me.school_name) localStorage.setItem('gdmn_school_name', me.school_name); } catch(e){}
+      hideAuthOverlay();
+      bootApp();
+    })
+    .catch(function(){
+      clearAuthToken();
+      showAuthForm('login');
+      showAuthOverlay();
+    });
+}
+
+window.showAuthForm=showAuthForm;
+window.doLogin=doLogin;
+window.doRegisterSchool=doRegisterSchool;
+window.doLogout=doLogout;
+
+checkAuthAndBoot();
 renderHomeFiles();
 renderHomePhil();
 renderCTPc();

@@ -1,4 +1,4 @@
-﻿from __future__ import annotations
+from __future__ import annotations
 from collections import Counter,defaultdict
 from datetime import datetime
 from pathlib import Path
@@ -10,7 +10,7 @@ if str(ROOT) not in sys.path:
  sys.path.insert(0, str(ROOT))
 
 from openpyxl import load_workbook
-from backend.db import get_connection
+from backend import db
 from backend.init_db import TABLES,init_database
 try:
  sys.stdout.reconfigure(encoding='utf-8', errors='replace')
@@ -38,48 +38,50 @@ def cparse(v):
  s=t(v); m=re.match(r'^([A-Za-zÀ-ỹ]+\d+(?:\.\d+)?)\s*[–\-]\s*(.+)$',s)
  if m: return code(m.group(1)),m.group(2)
  m=re.match(r'^([A-Za-zÀ-ỹ]+\d+(?:\.\d+)?)',s); return (code(m.group(1)),s) if m else ('',s)
-def gid(c,tab,col,val):
+def gid(conn,table,col,val):
  if not val: return None
- r=c.execute(f'SELECT id FROM "{tab}" WHERE "{col}"=?',(val,)).fetchone(); return int(r['id']) if r else None
-def domain(c,name,dc=None,desc=''):
+ row=conn.execute(table.select().filter_by(**{col:val})).mappings().fetchone(); return int(row['id']) if row else None
+def domain(conn,name,dc=None,desc=''):
  name=t(name); dc=t(dc)
  if not name: return None
  if dc:
-  c.execute('INSERT INTO domains(code,name,description) VALUES(?,?,?) ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.description,updated_at=CURRENT_TIMESTAMP',(dc,name,desc)); return gid(c,'domains','code',dc)
- old=gid(c,'domains','name',name)
- return old or c.execute('INSERT INTO domains(name,description) VALUES(?,?)',(name,desc)).lastrowid
-def comp(c,cc,name,desc='',did=None):
+  return db.upsert_returning_id(conn,db.domains,{'code':dc,'name':name,'description':desc},['code'])
+ old=gid(conn,db.domains,'name',name)
+ return old or db.insert_returning_id(conn,db.domains,{'name':name,'description':desc})
+def comp(conn,cc,name,desc='',did=None):
  cc=code(cc); name=t(name) or cc
  if not name and not cc: return None
  if cc:
-  c.execute('INSERT INTO competencies(code,name,description,domain_id) VALUES(?,?,?,?) ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.description,domain_id=COALESCE(excluded.domain_id,competencies.domain_id),updated_at=CURRENT_TIMESTAMP',(cc,name,desc,did)); return gid(c,'competencies','code',cc)
- old=gid(c,'competencies','name',name)
- return old or c.execute('INSERT INTO competencies(name,description,domain_id) VALUES(?,?,?)',(name,desc,did)).lastrowid
-def qual(c,name,desc=''):
+  return db.upsert_returning_id(conn,db.competencies,{'code':cc,'name':name,'description':desc,'domain_id':did},['code'],coalesce_cols=['domain_id'])
+ old=gid(conn,db.competencies,'name',name)
+ return old or db.insert_returning_id(conn,db.competencies,{'name':name,'description':desc,'domain_id':did})
+def qual(conn,name,desc=''):
  name=t(name)
  if not name: return None
- old=gid(c,'qualities','name',name)
- return old or c.execute('INSERT INTO qualities(name,description) VALUES(?,?)',(name,desc)).lastrowid
-def yccd(c,cc,content,aid=None,did=None,cid=None,note=''):
+ old=gid(conn,db.qualities,'name',name)
+ return old or db.insert_returning_id(conn,db.qualities,{'name':name,'description':desc})
+def yccd(conn,cc,content,aid=None,did=None,cid=None,note=''):
  cc=code(cc); content=t(content)
  if not cc or not content: return None
- c.execute('INSERT INTO yccd(code,content,age_group_id,domain_id,competency_id,source_note) VALUES(?,?,?,?,?,?) ON CONFLICT(code) DO UPDATE SET content=excluded.content,age_group_id=COALESCE(excluded.age_group_id,yccd.age_group_id),domain_id=COALESCE(excluded.domain_id,yccd.domain_id),competency_id=COALESCE(excluded.competency_id,yccd.competency_id),source_note=excluded.source_note,updated_at=CURRENT_TIMESTAMP',(cc,content,aid,did,cid,note)); return gid(c,'yccd','code',cc)
-def milestone(c,title,desc,aid=None,did=None,evi=''):
- return c.execute('INSERT INTO milestones(age_group_id,domain_id,title,description,evidence_hint) VALUES(?,?,?,?,?)',(aid,did,t(title),t(desc),evi)).lastrowid if t(title) and t(desc) else None
-def activity(c,cc,title,aid=None,did=None,yid=None,obj='',mat='',steps='',notes=''):
+ return db.upsert_returning_id(conn,db.yccd,{'code':cc,'content':content,'age_group_id':aid,'domain_id':did,'competency_id':cid,'source_note':note},['code'],coalesce_cols=['age_group_id','domain_id','competency_id'])
+def milestone(conn,title,desc,aid=None,did=None,evi=''):
+ return db.insert_returning_id(conn,db.milestones,{'age_group_id':aid,'domain_id':did,'title':t(title),'description':t(desc),'evidence_hint':evi}) if t(title) and t(desc) else None
+def activity(conn,cc,title,aid=None,did=None,yid=None,obj='',mat='',steps='',notes=''):
  cc=t(cc); title=t(title)
  if not title: return None
  if cc:
-  c.execute('INSERT INTO activities(code,title,age_group_id,domain_id,yccd_id,objective,materials,steps,notes) VALUES(?,?,?,?,?,?,?,?,?) ON CONFLICT(code) DO UPDATE SET title=excluded.title,age_group_id=COALESCE(excluded.age_group_id,activities.age_group_id),domain_id=COALESCE(excluded.domain_id,activities.domain_id),yccd_id=COALESCE(excluded.yccd_id,activities.yccd_id),objective=excluded.objective,materials=excluded.materials,steps=excluded.steps,notes=excluded.notes,updated_at=CURRENT_TIMESTAMP',(cc,title,aid,did,yid,obj,mat,steps,notes)); return gid(c,'activities','code',cc)
- return c.execute('INSERT INTO activities(title,age_group_id,domain_id,yccd_id,objective,materials,steps,notes) VALUES(?,?,?,?,?,?,?,?)',(title,aid,did,yid,obj,mat,steps,notes)).lastrowid
-def rubric(c,title,crit,yid=None,evi='',sup=''):
- return c.execute('INSERT INTO rubrics(yccd_id,title,criteria,evidence_hint,support_next) VALUES(?,?,?,?,?)',(yid,t(title),t(crit),evi,sup)).lastrowid if t(title) and t(crit) else None
-def year(c,aid,title,notes): return c.execute('INSERT INTO year_plans(school_year,age_group_id,title,notes) VALUES(?,?,?,?)',(YEAR,aid,t(title),t(notes))).lastrowid if t(title) or t(notes) else None
-def prep(c):
- c.execute('PRAGMA foreign_keys=OFF')
- for tab in CORE: c.execute(f'DELETE FROM "{tab}"')
- c.execute('PRAGMA foreign_keys=ON')
- for x in [('12-24th','Nhà trẻ 12-24 tháng','Nhóm tuổi nhà trẻ'),('24-36th','Nhà trẻ 24-36 tháng','Nhóm tuổi nhà trẻ'),('MGB','Mẫu giáo bé 3-4 tuổi','3-4 tuổi'),('MGN','Mẫu giáo nhỡ 4-5 tuổi','4-5 tuổi'),('MGL','Mẫu giáo lớn 5-6 tuổi','5-6 tuổi')]: c.execute('INSERT INTO age_groups(code,name,description) VALUES(?,?,?) ON CONFLICT(code) DO UPDATE SET name=excluded.name,description=excluded.description',x)
+  return db.upsert_returning_id(conn,db.activities,{'code':cc,'title':title,'age_group_id':aid,'domain_id':did,'yccd_id':yid,'objective':obj,'materials':mat,'steps':steps,'notes':notes},['code'],coalesce_cols=['age_group_id','domain_id','yccd_id'])
+ return db.insert_returning_id(conn,db.activities,{'title':title,'age_group_id':aid,'domain_id':did,'yccd_id':yid,'objective':obj,'materials':mat,'steps':steps,'notes':notes})
+def rubric(conn,title,crit,yid=None,evi='',sup=''):
+ return db.insert_returning_id(conn,db.rubrics,{'yccd_id':yid,'title':t(title),'criteria':crit,'evidence_hint':evi,'support_next':sup}) if t(title) and t(crit) else None
+def year(conn,aid,title,notes):
+ return db.insert_returning_id(conn,db.year_plans,{'school_year':YEAR,'age_group_id':aid,'title':t(title),'notes':t(notes)}) if t(title) or t(notes) else None
+def prep(conn):
+ if db.is_sqlite(): conn.exec_driver_sql('PRAGMA foreign_keys=OFF')
+ for tab in CORE: conn.exec_driver_sql(f'DELETE FROM "{tab}"')
+ if db.is_sqlite(): conn.exec_driver_sql('PRAGMA foreign_keys=ON')
+ for cc,name,desc in [('12-24th','Nhà trẻ 12-24 tháng','Nhóm tuổi nhà trẻ'),('24-36th','Nhà trẻ 24-36 tháng','Nhóm tuổi nhà trẻ'),('MGB','Mẫu giáo bé 3-4 tuổi','3-4 tuổi'),('MGN','Mẫu giáo nhỡ 4-5 tuổi','4-5 tuổi'),('MGL','Mẫu giáo lớn 5-6 tuổi','5-6 tuổi')]:
+  db.upsert_returning_id(conn,db.age_groups,{'code':cc,'name':name,'description':desc},['code'])
 def row_import(c,k,s,row,skip,rn):
  if k=='mg_khung':
   cc,name,dom=code(row.get('Mã')),row.get('Tên năng lực'),row.get('Lĩnh vực')
@@ -87,30 +89,30 @@ def row_import(c,k,s,row,skip,rn):
   did=domain(c,dom); cid=comp(c,cc,name,did=did)
   for q in split(row.get('Phẩm chất')): qual(c,q)
   for col,ac in [('3-4 tuổi (I)','MGB'),('4-5 tuổi (R)','MGN'),('5-6 tuổi (M)','MGL')]:
-   if row.get(col): milestone(c,f'{cc} - {col}',row[col],gid(c,'age_groups','code',ac),did,row.get('Minh chứng quan sát',''))
+   if row.get(col): milestone(c,f'{cc} - {col}',row[col],gid(c,db.age_groups,'code',ac),did,row.get('Minh chứng quan sát',''))
   return bool(cid)
  if k=='mg_yccd':
   cc,content=code(row.get('Mã')),row.get('YCCĐ 388 (mức M - đích chung 5-6 tuổi)')
   if not(cc and content): return skip(rn,'Thiếu Mã hoặc YCCĐ 388')
   cid=comp(c,cc,row.get('Tên năng lực') or cc); note=' | '.join(x for x in [row.get('Đối chiếu CS QĐ 4222 (chỉ MGL)'),row.get('Áp dụng độ tuổi'),row.get('Ghi chú')] if x)
-  return bool(yccd(c,cc,content,gid(c,'age_groups','code','MGL'),cid=cid,note=note))
+  return bool(yccd(c,cc,content,gid(c,db.age_groups,'code','MGL'),cid=cid,note=note))
  if k=='mg_hd':
   cc,title,obj=row.get('Mã HĐ'),row.get('Chủ đề/Chủ đề nhánh'),row.get('Mục tiêu quan sát được')
   if not(cc and title and obj): return skip(rn,'Thiếu Mã HĐ/Chủ đề/Mục tiêu quan sát được')
   did=domain(c,row.get('Lĩnh vực chính')); kc,kn=cparse(row.get('Năng lực lĩnh vực')); comp(c,kc,kn,did=did)
   for q in split(row.get('Phẩm chất liên quan')): qual(c,q)
   notes=' | '.join(x for x in [f"Lĩnh vực tích hợp thêm: {row.get('Lĩnh vực tích hợp thêm','')}",f"Năng lực nền tảng: {row.get('Năng lực nền tảng','')}",f"Câu hỏi gợi mở: {row.get('Câu hỏi gợi mở của GV','')}",f"Biểu hiện mong đợi: {row.get('Biểu hiện mong đợi','')}",f"Minh chứng đánh giá: {row.get('Minh chứng đánh giá','')}",f"Điều chỉnh hòa nhập / hỗ trợ đặc biệt: {row.get('Điều chỉnh hòa nhập / hỗ trợ đặc biệt','')}",f"Mở rộng cho trẻ khá hơn: {row.get('Mở rộng cho trẻ khá hơn','')}"] if not x.endswith(': '))
-  return bool(activity(c,cc,title,gid(c,'age_groups','code',age(row.get('Độ tuổi')) or ''),did,gid(c,'yccd','code',kc),obj,row.get('Chuẩn bị môi trường, học liệu',''),row.get('Tiến trình tổ chức',''),notes))
+  return bool(activity(c,cc,title,gid(c,db.age_groups,'code',age(row.get('Độ tuổi')) or ''),did,gid(c,db.yccd,'code',kc),obj,row.get('Chuẩn bị môi trường, học liệu',''),row.get('Tiến trình tổ chức',''),notes))
  if k=='mg_rubric':
   cc,name=code(row.get('Mã')),row.get('Tên năng lực')
   if not(cc and name): return skip(rn,'Thiếu Mã hoặc Tên năng lực')
   did=domain(c,row.get('Lĩnh vực')); comp(c,cc,name,did=did); crit='\n'.join(x for x in [f"I: {row.get('Biểu hiện I','')}",f"H: {row.get('Biểu hiện H','')}",f"V: {row.get('Biểu hiện V','')}"] if not x.endswith(': '))
-  return bool(rubric(c,f'{cc} - {name}',crit,gid(c,'yccd','code',cc),row.get('Minh chứng',''),row.get('Hướng hỗ trợ tiếp theo','')))
+  return bool(rubric(c,f'{cc} - {name}',crit,gid(c,db.yccd,'code',cc),row.get('Minh chứng',''),row.get('Hướng hỗ trợ tiếp theo','')))
  if k=='mg_year':
   cc,obj,dom=code(row.get('Mã')),row.get('Mục tiêu năm học'),row.get('Lĩnh vực')
   if not(cc and obj and dom): return skip(rn,'Thiếu Lĩnh vực/Mã/Mục tiêu năm học')
   did=domain(c,dom); comp(c,cc,cc,did=did); ac={'KHNAM_3_4T':'MGB','KHNAM_4_5T':'MGN','KHNAM_5_6T':'MGL'}.get(s)
-  return bool(year(c,gid(c,'age_groups','code',ac),f'{s} - {dom} - {cc}',obj))
+  return bool(year(c,gid(c,db.age_groups,'code',ac),f'{s} - {dom} - {cc}',obj))
  if k=='nt_bridge':
   raw=row.get('Lĩnh vực Nhà trẻ (82 chỉ số)')
   if not raw: return skip(rn,'Thiếu Lĩnh vực Nhà trẻ')
@@ -133,13 +135,13 @@ def row_import(c,k,s,row,skip,rn):
  if k=='nt_rubric':
   cc,dom,v=code(row.get('Mã năng lực')),row.get('Lĩnh vực'),row.get('V – Vững chắc (đạt đích 36 tháng)')
   if not(cc and dom and v): return skip(rn,'Thiếu Lĩnh vực/Mã năng lực/Vững chắc')
-  did=domain(c,dom); cid=comp(c,cc,cc,did=did); yid=yccd(c,cc,v,gid(c,'age_groups','code','24-36th'),did,cid,'Nhà trẻ - RUBRIC NHÀ TRẺ')
+  did=domain(c,dom); cid=comp(c,cc,cc,did=did); yid=yccd(c,cc,v,gid(c,db.age_groups,'code','24-36th'),did,cid,'Nhà trẻ - RUBRIC NHÀ TRẺ')
   for lv,col in [('I','I – Khởi đầu'),('H','H – Hình thành'),('V','V – Vững chắc (đạt đích 36 tháng)')]:
    if row.get(col): milestone(c,f'{cc} - mức {lv}',row[col],did=did,evi=row.get('Minh chứng quan sát',''))
   crit='\n'.join(x for x in [f"I: {row.get('I – Khởi đầu','')}",f"H: {row.get('H – Hình thành','')}",f'V: {v}'] if not x.endswith(': '))
   return bool(rubric(c,f'{cc} - Rubric nhà trẻ',crit,yid,row.get('Minh chứng quan sát',''),row.get('Hỗ trợ tiếp theo','')))
  return skip(rn,f'Chưa có importer {k}')
-def import_sheet(c,cfg):
+def import_sheet(conn,cfg):
  file,sheet,hr,k=cfg; res={'file':file.name,'sheet':sheet,'rows':0,'ok':0,'skip':0,'warn':[],'reasons':Counter(),'errors':[]}
  def sk(r,why): res['skip']+=1; res['reasons'][why]+=1; res['errors'].append(f'Dòng {r}: {why}'); return False
  if not file.exists(): res['warn'].append(f'Không tìm thấy file: {file}'); return res
@@ -154,10 +156,11 @@ def import_sheet(c,cfg):
   if not any(row.values()): continue
   res['rows']+=1
   try:
-   if row_import(c,k,sheet,row,sk,rn): res['ok']+=1
+   with conn.begin_nested():
+    ok=row_import(conn,k,sheet,row,sk,rn)
+   if ok: res['ok']+=1
   except Exception as e: sk(rn,f'Lỗi import: {e}')
  wb.close(); return res
-def counts(c): return {x:int(c.execute(f'SELECT COUNT(*) n FROM "{x}"').fetchone()['n']) for x in TABLES}
 def make_report(results,ct):
  lines=['# IMPORT_CORE_REPORT.md','','## Báo cáo import dữ liệu lõi CT388','',f"- Thời điểm import: `{datetime.now().strftime('%Y-%m-%d %H:%M:%S')}`",'- Phạm vi: chỉ import sheet lõi; không import hồ sơ cá nhân, portfolio, bảng kiểm lớp, nhật ký quan sát.','- Cơ chế chạy lại: xóa dữ liệu lõi cũ trong các bảng import trước khi nạp lại, để tránh trùng lặp.','','## Tổng hợp theo sheet','','| File | Sheet | Dòng đọc | Import thành công | Bỏ qua | Cảnh báo |','|---|---|---:|---:|---:|---|']
  for r in results: lines.append(f"| `{r['file']}` | `{r['sheet']}` | {r['rows']} | {r['ok']} | {r['skip']} | {'<br>'.join(r['warn'])} |")
@@ -175,13 +178,13 @@ def make_report(results,ct):
  return '\n'.join(lines)+'\n'
 def run_import():
  init_database()
- with get_connection() as c:
-  prep(c); results=[import_sheet(c,x) for x in CONFIGS]; c.commit(); ct=counts(c)
+ with db.get_connection() as conn:
+  with conn.begin():
+   prep(conn)
+   results=[import_sheet(conn,x) for x in CONFIGS]
+ ct=db.fetch_table_counts(TABLES)
  REPORT.write_text(make_report(results,ct),encoding='utf-8'); return results
 def main():
  rs=run_import(); print(f'Core import finished. Report: {REPORT}')
  for r in rs: print(f"{r['sheet']}: read={r['rows']}, imported={r['ok']}, skipped={r['skip']}")
 if __name__=='__main__': main()
-
-
-
