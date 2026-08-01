@@ -1,0 +1,5 @@
+__pycache__/
+*.pyc
+resources/config/
+resources/database/
+resources/license/

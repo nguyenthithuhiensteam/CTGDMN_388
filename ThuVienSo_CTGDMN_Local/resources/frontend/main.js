@@ -1626,18 +1626,21 @@ async function generateGiaoAn(){
 
   try {
     statusEl.textContent = 'AI đang soạn giáo án ⏳';
-    var resp = await fetch('https://api.anthropic.com/v1/messages',{
+    var resp = await fetch('http://127.0.0.1:8000/api/ai/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        model:'claude-sonnet-4-20250514',
+        model:'claude-sonnet-5',
         max_tokens:3000,
         system:'Bạn là chuyên gia soạn giáo án Giáo dục Mầm non Việt Nam, thành thạo Chương trình thí điểm 2026 theo QĐ 388. Luôn trả lời bằng tiếng Việt. Soạn giáo án chuyên nghiệp, chi tiết, thực tế, có thể áp dụng ngay. Dùng Markdown với heading rõ ràng.',
         messages: GA_MESSAGES
       })
     });
     var data = await resp.json();
-    if(!resp.ok) throw new Error(data.error?.message || 'API error '+resp.status);
+    if(!resp.ok){
+      if(resp.status === 412){ openAiSettings(); throw new Error('Chưa cấu hình API key AI. Vui lòng nhập rồi thử lại.'); }
+      throw new Error(data.detail || data.error?.message || 'API error '+resp.status);
+    }
     var text = data.content.map(b=>b.type==='text'?b.text:'').join('');
     GA_CURRENT_TEXT = text;
     GA_MESSAGES.push({role:'assistant', content: text});
@@ -1698,18 +1701,21 @@ async function sendFollowupMsg(q){
 
   GA_MESSAGES.push({role:'user', content: q});
   try {
-    var resp = await fetch('https://api.anthropic.com/v1/messages',{
+    var resp = await fetch('http://127.0.0.1:8000/api/ai/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({
-        model:'claude-sonnet-4-20250514',
+        model:'claude-sonnet-5',
         max_tokens:1500,
         system:'Bạn là chuyên gia soạn giáo án GDMN theo CT thí điểm 2026 (QĐ 388). Trả lời ngắn gọn, trực tiếp, thực tế. Tiếng Việt. Dùng Markdown nhẹ.',
         messages: GA_MESSAGES
       })
     });
     var data = await resp.json();
-    if(!resp.ok) throw new Error(data.error?.message||'Lỗi API');
+    if(!resp.ok){
+      if(resp.status === 412) openAiSettings();
+      throw new Error(data.detail || data.error?.message || 'Lỗi API');
+    }
     var ans = data.content.map(b=>b.type==='text'?b.text:'').join('');
     GA_MESSAGES.push({role:'assistant',content:ans});
     var typing = document.getElementById('chat-typing');
@@ -1915,6 +1921,48 @@ function openSchoolSetup(){
   document.getElementById('setup-school').value = SCHOOL_NAME;
   document.getElementById('setup-city').value = SCHOOL_CITY;
   document.getElementById('setup-overlay').style.display='flex';
+}
+
+// ─── AI SETTINGS (Anthropic API key, lưu cục bộ qua backend) ──────────────────
+function openAiSettings(){
+  var body =
+    '<div style="font-size:12.5px;color:var(--muted);margin-bottom:12px;line-height:1.6">' +
+    'Dán Anthropic API key để dùng tính năng <strong>Trợ lý Tạo giáo án AI</strong>. ' +
+    'Key chỉ được lưu cục bộ trên máy này (qua backend), không gửi đi đâu khác.</div>' +
+    '<input id="ai-key-input" class="setup-inp" type="password" placeholder="sk-ant-..." style="width:100%;margin-bottom:10px" />' +
+    '<div style="display:flex;gap:8px">' +
+    '<button class="setup-btn" style="flex:1" onclick="saveAiApiKey()">💾 Lưu API key</button>' +
+    '</div>' +
+    '<div id="ai-key-status" style="margin-top:10px;font-size:12px;color:var(--muted)">Đang kiểm tra trạng thái...</div>';
+  openModal('Cài đặt AI', body);
+  fetch('http://127.0.0.1:8000/api/ai/config-status')
+    .then(function(r){ return r.json(); })
+    .then(function(data){
+      var el = document.getElementById('ai-key-status');
+      if(el) el.textContent = data.configured ? '✅ Đã cấu hình API key trên máy này.' : '⚠️ Chưa cấu hình API key.';
+    })
+    .catch(function(){
+      var el = document.getElementById('ai-key-status');
+      if(el) el.textContent = '⚠️ Không kết nối được backend. Hãy chạy run_backend.bat trước.';
+    });
+}
+
+function saveAiApiKey(){
+  var input = document.getElementById('ai-key-input');
+  var key = input ? input.value.trim() : '';
+  if(!key){ toast('Vui lòng nhập API key'); return; }
+  fetch('http://127.0.0.1:8000/api/ai/config',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({api_key:key})
+  })
+    .then(function(r){ return r.json().then(function(data){ return {ok:r.ok, data:data}; }); })
+    .then(function(res){
+      if(!res.ok) throw new Error(res.data.detail || 'Lỗi lưu API key');
+      toast('✅ Đã lưu API key AI');
+      closeModalBtn();
+    })
+    .catch(function(e){ toast('❌ ' + e.message); });
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────

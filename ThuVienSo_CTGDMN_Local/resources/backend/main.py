@@ -1,11 +1,18 @@
 from typing import Any
 
-from fastapi import FastAPI, Query
+import httpx
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
 
+from backend.ai_config import clear_api_key, get_api_key, has_api_key, save_api_key
 from backend.db import DATABASE_PATH, fetch_table_counts, get_connection
 from backend.init_db import TABLES, init_database
 from backend.license_manager import create_license_for_current_machine, get_license_status, get_machine_id
+
+ANTHROPIC_API_URL = "https://api.anthropic.com/v1/messages"
+ANTHROPIC_VERSION = "2023-06-01"
+DEFAULT_AI_MODEL = "claude-sonnet-5"
 
 app = FastAPI(
     title="CT388 Local App API",
@@ -152,3 +159,66 @@ def license_create_demo() -> dict[str, Any]:
     data = create_license_for_current_machine()
     status = get_license_status()
     return {"status": "ok", "license": data, "license_status": status}
+
+
+class AiKeyRequest(BaseModel):
+    api_key: str
+
+
+class AiMessageRequest(BaseModel):
+    model: str = DEFAULT_AI_MODEL
+    max_tokens: int = 3000
+    system: str | None = None
+    messages: list[dict[str, Any]]
+
+
+@app.get("/api/ai/config-status")
+def ai_config_status() -> dict[str, bool]:
+    return {"configured": has_api_key()}
+
+
+@app.post("/api/ai/config")
+def ai_config_set(payload: AiKeyRequest) -> dict[str, bool]:
+    if not payload.api_key.strip():
+        raise HTTPException(status_code=400, detail="API key không được để trống.")
+    save_api_key(payload.api_key)
+    return {"configured": True}
+
+
+@app.delete("/api/ai/config")
+def ai_config_delete() -> dict[str, bool]:
+    clear_api_key()
+    return {"configured": False}
+
+
+@app.post("/api/ai/messages")
+async def ai_messages(payload: AiMessageRequest) -> dict[str, Any]:
+    api_key = get_api_key()
+    if not api_key:
+        raise HTTPException(
+            status_code=412,
+            detail="Chưa cấu hình Anthropic API key. Vào Cài đặt AI để thêm.",
+        )
+    body: dict[str, Any] = {
+        "model": payload.model,
+        "max_tokens": payload.max_tokens,
+        "messages": payload.messages,
+    }
+    if payload.system:
+        body["system"] = payload.system
+    try:
+        async with httpx.AsyncClient(timeout=60.0) as client:
+            resp = await client.post(
+                ANTHROPIC_API_URL,
+                json=body,
+                headers={
+                    "x-api-key": api_key,
+                    "anthropic-version": ANTHROPIC_VERSION,
+                    "content-type": "application/json",
+                },
+            )
+    except httpx.RequestError as exc:
+        raise HTTPException(status_code=502, detail=f"Không kết nối được tới Anthropic API: {exc}") from exc
+    if resp.status_code >= 400:
+        raise HTTPException(status_code=resp.status_code, detail=resp.text)
+    return resp.json()
