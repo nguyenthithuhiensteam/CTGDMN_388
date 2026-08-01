@@ -1,8 +1,10 @@
+from pathlib import Path
 from typing import Any
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy import text
 from sqlalchemy.exc import IntegrityError
@@ -44,6 +46,22 @@ def age_filter(age_group: str | None) -> tuple[str, dict[str, Any]]:
 @app.on_event("startup")
 def on_startup() -> None:
     init_database()
+    _seed_core_data_if_empty()
+
+
+def _seed_core_data_if_empty() -> None:
+    """First boot against a fresh database (e.g. a new hosted Postgres): load the
+    shared CT388 curriculum data from the bundled Excel files, if present. Safe to
+    skip on later restarts since it only runs while `domains` is still empty."""
+    try:
+        if db.fetch_table_counts(["domains"]).get("domains", 0) > 0:
+            return
+        from backend.import_core_excel import MG, NT, run_import
+
+        if MG.exists() and NT.exists():
+            run_import()
+    except Exception as exc:  # pragma: no cover - best-effort seeding, never blocks startup
+        print(f"[startup] Bỏ qua seed dữ liệu lõi: {exc}")
 
 
 @app.get("/api/health")
@@ -541,3 +559,11 @@ async def ai_messages(
     if resp.status_code >= 400:
         raise HTTPException(status_code=resp.status_code, detail=resp.text)
     return resp.json()
+
+
+# ─── Serve the static frontend (hosted web deployment) ─────────────────────
+# Must stay last: routes registered above are matched first, so this catch-all
+# mount only serves paths that aren't one of the /api/* routes.
+_FRONTEND_DIR = Path(__file__).resolve().parents[1] / "frontend"
+if _FRONTEND_DIR.exists():
+    app.mount("/", StaticFiles(directory=str(_FRONTEND_DIR), html=True), name="frontend")

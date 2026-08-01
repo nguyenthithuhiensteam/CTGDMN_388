@@ -2,7 +2,7 @@
 
 ## Báo cáo import dữ liệu lõi CT388
 
-- Thời điểm import: `2026-08-01 15:47:09`
+- Thời điểm import: `2026-08-01 15:59:53`
 - Phạm vi: chỉ import sheet lõi; không import hồ sơ cá nhân, portfolio, bảng kiểm lớp, nhật ký quan sát.
 - Cơ chế chạy lại: xóa dữ liệu lõi cũ trong các bảng import trước khi nạp lại, để tránh trùng lặp.
 

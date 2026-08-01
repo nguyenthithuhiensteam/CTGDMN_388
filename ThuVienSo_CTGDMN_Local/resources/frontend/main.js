@@ -1,3 +1,9 @@
+// ─── API BASE ───────────────────────────────────────────────────────────────
+// Desktop/Electron app and local dev serve the backend on 127.0.0.1:8000.
+// A hosted web deployment serves frontend + backend from the same origin,
+// so requests there are relative (same host, no CORS needed).
+var API_BASE = (location.hostname==='127.0.0.1' || location.hostname==='localhost' || location.protocol==='file:') ? 'http://127.0.0.1:8000' : '';
+
 // ─── STATE ──────────────────────────────────────────────────────────────────
 var AGE='nt', CUR_PAGE='home', CAL_MONTH=8, CAL_YEAR=2026;
 var PICKED_THEME='T9', PICKED_ACTS={};
@@ -1067,7 +1073,7 @@ function renderLicenseAdminBlock(){
   return '<section class="data-admin-section license-admin-section"><h3>Trạng thái license</h3><div class="license-status-head '+(active?'active':'demo')+'"><span>'+(active?'Đã kích hoạt':'DEMO – chưa kích hoạt')+'</span><button onclick="loadLicenseStatus()">Kiểm tra license</button></div><div class="license-info-grid">'+rows.map(function(r){return '<div><b>'+r[0]+'</b><span>'+r[1]+'</span></div>';}).join('')+'</div><div class="data-admin-message '+(active?'':'warn')+'">'+(s.message||'Chưa kiểm tra được license. Vui lòng chạy backend.')+'</div></section>';
 }
 function loadLicenseStatus(){
-  return fetch('http://127.0.0.1:8000/api/license/status').then(function(r){return r.json();}).then(function(data){
+  return fetch(API_BASE+'/api/license/status').then(function(r){return r.json();}).then(function(data){
     LICENSE_STATUS=data||LICENSE_STATUS;
     updateLicenseBadge();
     if(CUR_PAGE==='data-admin') renderDataAdmin();
@@ -1626,7 +1632,7 @@ async function generateGiaoAn(){
 
   try {
     statusEl.textContent = 'AI đang soạn giáo án ⏳';
-    var resp = await fetch('http://127.0.0.1:8000/api/ai/messages',{
+    var resp = await fetch(API_BASE+'/api/ai/messages',{
       method:'POST',
       headers:Object.assign({'Content-Type':'application/json'},authHeaders()),
       body: JSON.stringify({
@@ -1701,7 +1707,7 @@ async function sendFollowupMsg(q){
 
   GA_MESSAGES.push({role:'user', content: q});
   try {
-    var resp = await fetch('http://127.0.0.1:8000/api/ai/messages',{
+    var resp = await fetch(API_BASE+'/api/ai/messages',{
       method:'POST',
       headers:Object.assign({'Content-Type':'application/json'},authHeaders()),
       body:JSON.stringify({
@@ -1933,7 +1939,7 @@ function openAiSettings(){
     '</div>' +
     '<div id="ai-key-status" style="margin-top:10px;font-size:12px;color:var(--muted)">Đang kiểm tra trạng thái...</div>';
   openModal('Cài đặt AI', body);
-  fetch('http://127.0.0.1:8000/api/ai/config-status')
+  fetch(API_BASE+'/api/ai/config-status')
     .then(function(r){ return r.json(); })
     .then(function(data){
       var el = document.getElementById('ai-key-status');
@@ -1949,7 +1955,7 @@ function saveAiApiKey(){
   var input = document.getElementById('ai-key-input');
   var key = input ? input.value.trim() : '';
   if(!key){ toast('Vui lòng nhập API key'); return; }
-  fetch('http://127.0.0.1:8000/api/ai/config',{
+  fetch(API_BASE+'/api/ai/config',{
     method:'POST',
     headers:Object.assign({'Content-Type':'application/json'},authHeaders()),
     body: JSON.stringify({api_key:key})
@@ -2336,10 +2342,10 @@ function renderDataAdminWarnings(){
   return '<section class="data-admin-section"><h3>Cảnh báo chuyên môn</h3><div class="data-admin-warning-grid"><div>Không tự ý sửa mã/YCCĐ.</div><div>Không dùng dữ liệu để xếp hạng trẻ, lớp hoặc giáo viên.</div><div>Dashboard chỉ dùng để hỗ trợ điều chỉnh chuyên môn.</div><div>Mã/YCCĐ là khung đối chiếu, không phải điểm số.</div></div></section>';
 }
 function checkBackendStatus(){
-  fetch('http://127.0.0.1:8000/api/health').then(function(r){return r.json();}).then(function(){DATA_ADMIN_BACKEND_STATUS='Đang chạy';renderDataAdmin();}).catch(function(){DATA_ADMIN_BACKEND_STATUS='Chưa kết nối';renderDataAdmin();});
+  fetch(API_BASE+'/api/health').then(function(r){return r.json();}).then(function(){DATA_ADMIN_BACKEND_STATUS='Đang chạy';renderDataAdmin();}).catch(function(){DATA_ADMIN_BACKEND_STATUS='Chưa kết nối';renderDataAdmin();});
 }
 function loadStatsDemoOrApi(){
-  return fetch('http://127.0.0.1:8000/api/stats').then(function(r){return r.json();}).then(function(data){DATA_ADMIN_STATS=data||{};DATA_ADMIN_DB_STATUS='Đã kết nối';DATA_ADMIN_STATS_STATUS='Đã tải thống kê từ backend /api/stats.';renderDataAdmin();}).catch(function(){DATA_ADMIN_STATS={age_groups:0,domains:0,qualities:0,competencies:0,yccd:0,year_plans:0,activities:0,rubrics:0,children:0,observations:0,portfolio:0,assessments:0};DATA_ADMIN_DB_STATUS='Chưa kết nối';DATA_ADMIN_STATS_STATUS='Chưa kết nối backend. Vui lòng chạy run_backend.bat.';renderDataAdmin();});
+  return fetch(API_BASE+'/api/stats').then(function(r){return r.json();}).then(function(data){DATA_ADMIN_STATS=data||{};DATA_ADMIN_DB_STATUS='Đã kết nối';DATA_ADMIN_STATS_STATUS='Đã tải thống kê từ backend /api/stats.';renderDataAdmin();}).catch(function(){DATA_ADMIN_STATS={age_groups:0,domains:0,qualities:0,competencies:0,yccd:0,year_plans:0,activities:0,rubrics:0,children:0,observations:0,portfolio:0,assessments:0};DATA_ADMIN_DB_STATUS='Chưa kết nối';DATA_ADMIN_STATS_STATUS='Chưa kết nối backend. Vui lòng chạy run_backend.bat.';renderDataAdmin();});
 }
 // CT388 plan wizard - minh hoa, chua ket noi API
 var currentWizardStep = 1;
@@ -2546,7 +2552,7 @@ function renderNurseryOverview(){var p=document.getElementById('p-nt-overview');
 function renderKindergartenOverview(){var p=document.getElementById('p-mg-overview');if(!p)return;var ageCards=[['3–4 tuổi','Mẫu giáo bé – hình thành: không nhà trẻ hóa, hỗ trợ trẻ làm quen nề nếp mẫu giáo qua chơi và trải nghiệm.'],['4–5 tuổi','Mẫu giáo nhỡ – củng cố: mở rộng hợp tác, ngôn ngữ, tự lực, khám phá và biểu đạt.'],['5–6 tuổi','Mẫu giáo lớn – vững hơn, sẵn sàng vào lớp 1: không tiểu học hóa, ưu tiên năng lực nền tảng.']];var groups=[{name:'Khung năng lực',sheet:'KHUNGNL',tables:['competencies','qualities','domains'],page:'mg-framework',use:'tra cứu lĩnh vực, năng lực, phẩm chất và biểu hiện quan sát.'},{name:'Mốc phát triển',sheet:'MOCPT / các sheet mốc phát triển',tables:['milestones'],page:'mg-milestones',use:'theo dõi tiến trình 3–4, 4–5, 5–6 tuổi.'},{name:'Ma trận YCCĐ',sheet:'MATRANYCCD',tables:['yccd'],page:'overview-ct388',use:'đối chiếu YCCĐ với lĩnh vực, năng lực và độ tuổi.'},{name:'Kế hoạch năm 3–4T',sheet:'KHNAM_3_4T',tables:['year_plans'],page:'mg-year-plan',use:'xem khung kế hoạch năm cho mẫu giáo bé.'},{name:'Kế hoạch năm 4–5T',sheet:'KHNAM_4_5T',tables:['year_plans'],page:'mg-year-plan',use:'xem khung kế hoạch năm cho mẫu giáo nhỡ.'},{name:'Kế hoạch năm 5–6T',sheet:'KHNAM_5_6T',tables:['year_plans'],page:'mg-year-plan',use:'xem khung kế hoạch năm cho mẫu giáo lớn.'},{name:'Phiên chế 35 tuần',sheet:'PHIENCHE35TUAN',tables:['week_plans','year_plans'],page:'mg-35-weeks',use:'theo dõi tuần, giai đoạn, chủ đề/bối cảnh và trục năng lực.'},{name:'Ngân hàng hoạt động',sheet:'NGANHANGHD',tables:['activities'],page:'mg-activities',use:'chọn hoạt động theo tuổi, lĩnh vực, năng lực, phẩm chất, STEAM/SEL.'},{name:'Ngân hàng học liệu',sheet:'NGANHANGHL',tables:['activities'],page:'download',use:'quản lý học liệu/môi trường phục vụ hoạt động.'},{name:'Rubric',sheet:'RUBRIC',tables:['rubrics'],page:'mg-rubric',use:'quan sát I/H/V và hướng hỗ trợ tiếp theo.'},{name:'Bảng kiểm lớp',sheet:'Bảng kiểm lớp',tables:['assessments'],page:'mg-records',use:'theo dõi biểu hiện theo nhóm/lớp.'},{name:'Nhật ký quan sát',sheet:'Nhật ký quan sát',tables:['observations'],page:'mg-records',use:'ghi nhận bối cảnh, hành vi, lời nói và minh chứng.'},{name:'Phiếu cá nhân',sheet:'Phiếu cá nhân',tables:['children','assessments'],page:'mg-records',use:'tổng hợp tiến bộ và hướng hỗ trợ từng trẻ.'},{name:'Phiếu trao đổi cha mẹ',sheet:'Phiếu trao đổi cha mẹ',tables:['portfolio'],page:'mg-records',use:'chia sẻ minh chứng tích cực với cha mẹ.'},{name:'Portfolio',sheet:'Portfolio',tables:['portfolio'],page:'mg-records',use:'lưu minh chứng học tập, sản phẩm, câu nói và nhận xét.'},{name:'Dashboard lớp',sheet:'Dashboard lớp',tables:['children','observations','assessments'],page:'mg-records',use:'hỗ trợ điều chỉnh chuyên môn, không xếp hạng.'},{name:'Dashboard toàn trường',sheet:'Dashboard toàn trường',tables:['children','observations','assessments'],page:'mg-records',use:'xem xu hướng dữ liệu để hỗ trợ quản lý chuyên môn.'}];p.innerHTML='<div class="pg-h"><div class="pg-title">Tổng quan mẫu giáo</div><div class="pg-sub">Dashboard bộ Mẫu giáo 3–6 tuổi theo khung phẩm chất, năng lực, YCCĐ, kế hoạch, hoạt động và hồ sơ.</div></div>'+kindergartenDemoNotice()+kindergartenPrincipleNotice()+appImportNotice('Nếu trạng thái còn Demo/Chờ import Excel, hãy import dữ liệu lõi rồi kiểm tra lại thống kê trong Quản lý dữ liệu CTGDMN.')+'<div class="app-age-grid">'+ageCards.map(function(a){return '<div class="app-age-card kg"><b>'+a[0]+'</b><p>'+a[1]+'</p></div>';}).join('')+'</div><div class="app-data-dashboard">'+groups.map(appGroupCard).join('')+'</div>';}
 function renderNurseryRubric(){var p=document.getElementById('p-nt-rubric');if(!p)return;var levels=[['I','Khởi đầu','Cần hỗ trợ nhiều trong bối cảnh quen thuộc.'],['H','Hình thành','Bắt đầu tham gia khi được nhắc nhẹ hoặc làm cùng cô.'],['V','Vững chắc','Chủ động hơn trong nhiều bối cảnh sinh hoạt/chơi.'],['X','Chưa có cơ hội quan sát','Chưa đủ minh chứng, cần tiếp tục quan sát.']];var rows=[['Thích nghi - cảm xúc','Mã demo NT-RB1','Trẻ yên tâm hơn khi đến lớp và chấp nhận tương tác với cô.','Còn khóc/né tránh, cần cô ôm ấp và trấn an.','Chấp nhận tham gia khi cô ở gần hoặc gợi ý.','Chủ động tìm cô/bạn quen trong một số thời điểm.','Chưa đủ bối cảnh quan sát.','Ảnh/video đón trẻ, ghi chú cảm xúc.','Giữ nhịp sinh hoạt ổn định, tăng tương tác 1-1.'],['Tự phục vụ','Mã demo NT-RB2','Trẻ hợp tác trong ăn, uống, vệ sinh, thay đồ theo khả năng.','Phụ thuộc nhiều vào cô.','Làm một phần thao tác khi được nhắc/làm mẫu.','Tự thực hiện một số thao tác quen thuộc.','Chưa đủ minh chứng.','Ghi chú trong giờ ăn, rửa tay, thay đồ.','Chia nhỏ thao tác, dùng lời nhắc ngắn và hình ảnh.'],['Giao tiếp','Mã demo NT-RB3','Trẻ dùng cử chỉ, âm thanh, lời nói để bộc lộ nhu cầu.','Ít phản hồi hoặc chỉ khóc/căng thẳng.','Có phản hồi khi cô hỏi/gợi ý.','Chủ động gọi, chỉ, nói hoặc đưa đồ để giao tiếp.','Chưa đủ cơ hội.','Câu nói/cử chỉ nguyên văn, video ngắn.','Tăng chờ đợi, gọi tên cảm xúc và nhu cầu của trẻ.']];p.innerHTML='<div class="pg-h"><div class="pg-title">Rubric nhà trẻ</div><div class="pg-sub">Rubric demo/khung chờ dữ liệu thật từ sheet 11. RUBRIC NHÀ TRẺ.</div></div>'+nurseryDemoNotice()+appImportNotice('Chưa import rubric nhà trẻ từ Excel hoặc chưa kết nối dữ liệu thật. Bảng dưới đây là khung demo để tránh giao diện trống.')+'<div class="note warn"><i class="ti ti-alert-circle"></i><div>Rubric không dùng để xếp loại hoặc so sánh trẻ. Rubric dùng để xác định mức hỗ trợ và điều chỉnh kế hoạch.</div></div><div class="nursery-rubric-table">'+levels.map(function(l){return '<div class="nursery-rubric-cell"><div class="nursery-rubric-level">'+l[0]+'</div><h3>'+l[1]+'</h3><p>'+l[2]+'</p></div>';}).join('')+'</div><div class="kg-table-wrap"><table class="kg-table"><thead><tr><th>Lĩnh vực</th><th>Mã/YCCĐ</th><th>Biểu hiện quan sát</th><th>Mức I</th><th>Mức H</th><th>Mức V</th><th>Mức X</th><th>Minh chứng</th><th>Hướng hỗ trợ</th></tr></thead><tbody>'+rows.map(function(r){return '<tr>'+r.map(function(c,i){return '<td>'+(i===1?'<span class="year-plan-demo-tag">Demo</span><br>':'')+c+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';}
 var DEMO_KG_COMPETENCIES=[{code:'DEMO-TC1',age:'3-4',domain:'Thể chất',quality:'Tự tin',competency:'Tự lực',title:'Tham gia vận động phù hợp khả năng',observe:'Trẻ thử vận động, biết dừng khi cần hỗ trợ và chia sẻ cảm nhận.'},{code:'DEMO-NN1',age:'4-5',domain:'Ngôn ngữ',quality:'Nhân ái',competency:'Giao tiếp',title:'Trao đổi ý tưởng trong nhóm nhỏ',observe:'Trẻ nói, nghe, chờ lượt và dùng lời để bày tỏ nhu cầu.'},{code:'DEMO-NT1',age:'5-6',domain:'Nhận thức',quality:'Trách nhiệm',competency:'Giải quyết vấn đề',title:'Thử nghiệm nhiều cách giải quyết',observe:'Trẻ dự đoán, thử, điều chỉnh và nêu lý do đơn giản.'},{code:'DEMO-TM1',age:'3-4',domain:'Thẩm mỹ',quality:'Tự tin',competency:'Biểu đạt',title:'Biểu đạt bằng âm thanh, màu sắc, vận động',observe:'Trẻ lựa chọn vật liệu/cách thể hiện theo ý thích.'}];
-function loadApiOrDemo(endpoint,demo){return fetch('http://127.0.0.1:8000'+endpoint).then(function(r){if(!r.ok)throw new Error('api');return r.json();}).then(function(data){return(Array.isArray(data)&&data.length)?data:demo;}).catch(function(){return demo;});}
+function loadApiOrDemo(endpoint,demo){return fetch(API_BASE+endpoint).then(function(r){if(!r.ok)throw new Error('api');return r.json();}).then(function(data){return(Array.isArray(data)&&data.length)?data:demo;}).catch(function(){return demo;});}
 function loadCompetencies(){return loadApiOrDemo('/api/competencies',DEMO_KG_COMPETENCIES);}function loadMilestones(){return loadApiOrDemo('/api/milestones',DEMO_KG_MILESTONES);}function loadActivities(){return loadApiOrDemo('/api/activities',[]);}function loadRubrics(){return loadApiOrDemo('/api/rubrics',[]);}function loadYearPlans(){return loadApiOrDemo('/api/year-plans',[]);}function loadObservationForms(){return loadApiOrDemo('/api/observations',[]);}function loadPortfolioItems(){return loadApiOrDemo('/api/portfolio',[]);}
 function setKgFrameworkFilter(key,value){KG_FRAMEWORK_FILTERS[key]=value;renderKindergartenFrameworkList();}
 function renderKindergartenFramework(){var p=document.getElementById('p-mg-framework');if(!p)return;p.innerHTML='<div class="pg-h"><div class="pg-title">Khung năng lực mẫu giáo</div><div class="pg-sub">Có sẵn hàm loadCompetencies() để thử API; nếu backend/API lỗi thì hiển thị demo có mã DEMO rõ ràng.</div></div>'+kindergartenDemoNotice()+kindergartenPrincipleNotice()+appImportNotice('Chưa import khung năng lực từ Excel hoặc chưa có API dữ liệu thật. Dữ liệu dưới đây là demo/fallback.')+appFilterDemoNotice()+'<div class="kg-filter-panel"><select onchange="setKgFrameworkFilter(\'age\',this.value)"><option value="all">Độ tuổi</option><option value="3-4">3–4</option><option value="4-5">4–5</option><option value="5-6">5–6</option></select><select onchange="setKgFrameworkFilter(\'domain\',this.value)"><option value="all">Lĩnh vực</option><option>Thể chất</option><option>Nhận thức</option><option>Ngôn ngữ</option><option>Tình cảm - xã hội</option><option>Thẩm mỹ</option></select><select onchange="setKgFrameworkFilter(\'quality\',this.value)"><option value="all">Phẩm chất</option><option>Tự tin</option><option>Nhân ái</option><option>Trách nhiệm</option></select><select onchange="setKgFrameworkFilter(\'competency\',this.value)"><option value="all">Năng lực</option><option>Giao tiếp</option><option>Tự lực</option><option>Giải quyết vấn đề</option><option>Biểu đạt</option></select><input placeholder="Từ khóa..." oninput="setKgFrameworkFilter(\'keyword\',this.value)" /></div><div id="kg-framework-list"></div>';loadCompetencies().then(function(data){window.KG_COMPETENCY_CURRENT=data;renderKindergartenFrameworkList();});}
@@ -2631,7 +2637,7 @@ function doLogin(){
   var errEl = document.getElementById('auth-login-error');
   errEl.textContent = '';
   if(!email || !password){ errEl.textContent = 'Vui lòng nhập email và mật khẩu'; return; }
-  fetch('http://127.0.0.1:8000/api/auth/login',{
+  fetch(API_BASE+'/api/auth/login',{
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({email:email, password:password})
   })
@@ -2655,7 +2661,7 @@ function doRegisterSchool(){
     errEl.textContent = 'Vui lòng nhập tên trường, email và mật khẩu tối thiểu 6 ký tự';
     return;
   }
-  fetch('http://127.0.0.1:8000/api/auth/register-school',{
+  fetch(API_BASE+'/api/auth/register-school',{
     method:'POST', headers:{'Content-Type':'application/json'},
     body: JSON.stringify({school_name:school_name, city:city, admin_full_name:admin_full_name, admin_email:admin_email, admin_password:admin_password})
   })
@@ -2688,7 +2694,7 @@ function bootApp(){
 function checkAuthAndBoot(){
   var token = getAuthToken();
   if(!token){ showAuthForm('login'); showAuthOverlay(); return; }
-  fetch('http://127.0.0.1:8000/api/auth/me', {headers: authHeaders()})
+  fetch(API_BASE+'/api/auth/me', {headers: authHeaders()})
     .then(function(r){ if(!r.ok) throw new Error('invalid'); return r.json(); })
     .then(function(me){
       CURRENT_ACCOUNT = me;
