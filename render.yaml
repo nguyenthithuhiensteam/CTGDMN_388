@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: ct388-app
+    runtime: python
+    plan: free
+    rootDir: ThuVienSo_CTGDMN_Local/resources
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn backend.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: CT388_AUTH_SECRET
+        generateValue: true
+      - key: CT388_ANTHROPIC_API_KEY
+        sync: false
