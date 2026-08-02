@@ -208,15 +208,15 @@ function nav(el,id){
       if(n.getAttribute('onclick')&&n.getAttribute('onclick').includes("'"+id+"'")) n.classList.add('on');
     });
   }
-  if(id==='tracker') renderTracker();
+  if(id==='tracker') loadChildren().then(function(){ applyChildrenToTracker(); renderTracker(); });
   if(id==='calendar') renderCalendar();
   if(id==='builder') renderBuilder();
   renderNurseryByPage(id);
   renderKindergartenByPage(id);
   if(id==='plan-from-data') renderPlanWizard();
-  if(id==='observation-log') renderObservationJournal();
-  if(id==='child-profile') renderChildProfile();
-  if(id==='portfolio') renderPortfolio();
+  if(id==='observation-log') loadChildren().then(renderObservationJournal);
+  if(id==='child-profile') loadChildren().then(renderChildProfile);
+  if(id==='portfolio') loadChildren().then(renderPortfolio);
   if(id==='parent-sheet') renderParentCommunication();
   if(id==='dashboard') renderDashboard();
   if(id==='data-admin') renderDataAdmin();
@@ -785,11 +785,20 @@ function addStudent(){
   var name=prompt('Nhập tên học sinh:','');
   if(!name||!name.trim()) return;
   name=name.trim();
-  if(TRACKER_STUDENTS.indexOf(name)>=0){toast('Học sinh này đã có trong danh sách!');return;}
-  TRACKER_STUDENTS.push(name);
-  TRACKER_DATA[name]={};
-  renderTracker();
-  toast('Đã thêm: '+name);
+  apiPost('/api/children',{full_name:name}).then(function(){
+    return loadChildren();
+  }).then(function(){
+    applyChildrenToTracker();
+    renderTracker();
+    toast('✅ Đã thêm: '+name);
+  }).catch(function(e){ toast('❌ Không thêm được: '+e.message); });
+}
+
+function applyChildrenToTracker(){
+  if(CHILDREN_LIST.length){
+    TRACKER_STUDENTS=CHILDREN_LIST.map(function(c){return c.full_name;});
+  }
+  TRACKER_STUDENTS.forEach(function(s){ if(!TRACKER_DATA[s]) TRACKER_DATA[s]={}; });
 }
 
 function _hnCard(ico,ttl,desc,c){
@@ -2274,22 +2283,143 @@ function openEvidenceModal(context){
   document.body.appendChild(div);
 }
 function closeEvidenceModal(){var m=document.getElementById('evidence-modal-bg'); if(m) m.remove();}
+var OBS_SELECTED_CHILD='';
 function renderObservationJournal(){
   var p=document.getElementById('p-observation-log'); if(!p) return;
-  var rows=['Đón trẻ','Chơi ngoài trời','Hoạt động góc'].map(function(ctx,i){return '<div class="records-log-card"><div class="records-log-top"><b>0'+(i+1)+'/09/2026</b><span class="records-badge">I/H/V/X minh họa</span></div><h4>Trẻ minh họa '+(i+1)+'</h4><p><b>Bối cảnh:</b> '+ctx+'</p><p><b>Biểu hiện:</b> Dữ liệu minh họa – sẽ thay bằng dữ liệu từ Excel sau khi import.</p><p><b>Mã/YCCĐ:</b> Chờ import dữ liệu từ Excel.</p><p><b>Minh chứng:</b> Ảnh/video, câu nói, sản phẩm hoặc ghi chú quan sát.</p><button onclick="toast(\'Demo: xem chi tiết ghi nhận\')">Xem chi tiết</button></div>';}).join('');
-  p.innerHTML='<div class="pg-h"><div class="pg-title">Nhật ký quan sát</div><div class="pg-sub">Ghi nhận minh chứng cụ thể, nhận xét tiến bộ và hướng hỗ trợ tiếp theo.</div></div>'+recordsDemoNotice()+recordsFilterBar(['Độ tuổi','Tên trẻ','Ngày quan sát','Lĩnh vực','Phẩm chất/năng lực','Mức I/H/V/X'])+recordsDemoActions(['Thêm ghi nhận','Lọc dữ liệu'])+renderEvidenceUploadBox('observation','Đính kèm minh chứng',false)+'<div class="records-log-grid">'+rows+'</div>';
+  if(!OBS_SELECTED_CHILD && CHILDREN_LIST.length) OBS_SELECTED_CHILD=String(CHILDREN_LIST[0].id);
+  p.innerHTML='<div class="pg-h"><div class="pg-title">Nhật ký quan sát</div><div class="pg-sub">Ghi nhận minh chứng cụ thể, nhận xét tiến bộ và hướng hỗ trợ tiếp theo.</div></div>'+
+    '<div class="card"><div class="card-hdr"><div class="card-ttl"><i class="ti ti-user-check"></i>Chọn trẻ</div></div><div class="card-body">'+
+      '<select id="obs-child-select" class="ga-sel" onchange="obsSelectChild(this.value)" style="max-width:320px">'+childOptionsHtml(OBS_SELECTED_CHILD)+'</select>'+
+    '</div></div>'+
+    '<div class="card"><div class="card-hdr"><div class="card-ttl"><i class="ti ti-note"></i>Ghi quan sát mới</div></div><div class="card-body">'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'+
+        '<div><div class="ga-lbl">Bối cảnh</div><input id="obs-context" class="ga-inp" placeholder="VD: Giờ chơi góc xây dựng"/></div>'+
+        '<div><div class="ga-lbl">Minh chứng</div><input id="obs-evidence" class="ga-inp" placeholder="Ảnh/video/câu nói nguyên văn"/></div>'+
+      '</div>'+
+      '<div style="margin-bottom:10px"><div class="ga-lbl">Nhận xét quan sát</div><textarea id="obs-note" class="ga-inp" rows="2" placeholder="Trẻ đã làm gì, thể hiện điều gì..."></textarea></div>'+
+      '<div style="margin-bottom:10px"><div class="ga-lbl">Hỗ trợ tiếp theo</div><input id="obs-support" class="ga-inp" placeholder="Gợi ý hỗ trợ trẻ ở bước tiếp theo"/></div>'+
+      '<button class="ga-main-btn" onclick="submitObservation()"><i class="ti ti-plus"></i> Lưu quan sát</button>'+
+    '</div></div>'+
+    '<div class="card"><div class="card-hdr"><div class="card-ttl"><i class="ti ti-history"></i>Lịch sử quan sát</div></div><div class="card-body" id="obs-list">Đang tải...</div></div>';
+  loadObservationsForSelected();
 }
+function obsSelectChild(id){ OBS_SELECTED_CHILD=id; loadObservationsForSelected(); }
+function loadObservationsForSelected(){
+  var el=document.getElementById('obs-list'); if(!el) return;
+  if(!OBS_SELECTED_CHILD){ el.innerHTML='<div class="note info">Chưa có trẻ nào. Vào "Theo dõi trẻ" để thêm trẻ trước.</div>'; return; }
+  apiGet('/api/observations?child_id='+encodeURIComponent(OBS_SELECTED_CHILD)).then(function(list){
+    if(!list.length){ el.innerHTML='<div class="note info">Chưa có ghi nhận quan sát nào cho trẻ này.</div>'; return; }
+    el.innerHTML=list.slice().reverse().map(function(o){
+      return '<div class="records-log-card"><div class="records-log-top"><b>'+escHtml(o.observed_at||o.created_at||'')+'</b></div>'+
+        (o.context?'<p><b>Bối cảnh:</b> '+escHtml(o.context)+'</p>':'')+
+        '<p><b>Nhận xét:</b> '+escHtml(o.note)+'</p>'+
+        (o.evidence?'<p><b>Minh chứng:</b> '+escHtml(o.evidence)+'</p>':'')+
+        (o.support_next?'<p><b>Hỗ trợ tiếp theo:</b> '+escHtml(o.support_next)+'</p>':'')+
+      '</div>';
+    }).join('');
+  }).catch(function(e){ el.innerHTML='<div class="note warn">Lỗi tải dữ liệu: '+escHtml(e.message)+'</div>'; });
+}
+function submitObservation(){
+  if(!OBS_SELECTED_CHILD){ toast('Chưa có trẻ để ghi nhận'); return; }
+  var note=document.getElementById('obs-note').value.trim();
+  if(!note){ toast('Vui lòng nhập nhận xét quan sát'); return; }
+  apiPost('/api/observations',{
+    child_id: parseInt(OBS_SELECTED_CHILD,10),
+    context: document.getElementById('obs-context').value.trim(),
+    note: note,
+    evidence: document.getElementById('obs-evidence').value.trim(),
+    support_next: document.getElementById('obs-support').value.trim()
+  }).then(function(){
+    document.getElementById('obs-context').value='';
+    document.getElementById('obs-note').value='';
+    document.getElementById('obs-evidence').value='';
+    document.getElementById('obs-support').value='';
+    toast('✅ Đã lưu quan sát');
+    loadObservationsForSelected();
+  }).catch(function(e){ toast('❌ '+e.message); });
+}
+
+var PROFILE_SELECTED_CHILD='';
 function renderChildProfile(){
   var p=document.getElementById('p-child-profile'); if(!p) return;
-  var domains=['Thể chất','Tình cảm - xã hội','Ngôn ngữ','Nhận thức','Nghệ thuật'].map(function(d){return '<div class="records-profile-domain"><h4>'+d+'</h4><p><b>Biểu hiện đã quan sát:</b> Dữ liệu minh họa – sẽ thay bằng dữ liệu từ Excel sau khi import.</p><p><b>Mã/YCCĐ:</b> Chờ import dữ liệu từ Excel.</p><p><b>Minh chứng:</b> Ảnh/video/sản phẩm/câu nói.</p><p><b>Hỗ trợ tiếp theo:</b> Điều chỉnh theo nhu cầu của trẻ.</p></div>';}).join('');
-  var traits=['Yêu thương','Tôn trọng','Trung thực','Trách nhiệm','Giao tiếp','Hợp tác','Giải quyết vấn đề','Tự lực','Thích ứng'].map(function(t,i){return '<div class="records-progress"><span>'+t+'</span><div><i style="width:'+(45+i*5%45)+'%"></i></div><b>Minh họa</b></div>';}).join('');
-  p.innerHTML='<div class="pg-h"><div class="pg-title">Phiếu cá nhân</div><div class="pg-sub">Theo dõi tiến bộ của từng trẻ qua các thời điểm trong năm học.</div></div>'+recordsDemoNotice()+'<div class="records-info-grid"><div><b>Họ tên trẻ</b><span>Trẻ minh họa</span></div><div><b>Ngày sinh</b><span>Dữ liệu minh họa</span></div><div><b>Độ tuổi/lớp</b><span>Dữ liệu minh họa</span></div><div><b>Giáo viên phụ trách</b><span>Dữ liệu minh họa</span></div></div><h3 class="records-section-title">Tiến bộ theo lĩnh vực</h3><div class="records-domain-grid">'+domains+'</div><h3 class="records-section-title">Phẩm chất và năng lực</h3><div class="records-progress-grid">'+traits+'</div><h3 class="records-section-title">Minh chứng cá nhân của trẻ</h3>'+recordsFilterBar(['Lĩnh vực','Tháng/chủ đề'])+renderEvidenceUploadBox('child-profile','Thêm ảnh/video/file cá nhân',false)+recordsDemoActions(['Cập nhật phiếu','In phiếu','Xuất Word sau này']);
+  if(!PROFILE_SELECTED_CHILD && CHILDREN_LIST.length) PROFILE_SELECTED_CHILD=String(CHILDREN_LIST[0].id);
+  p.innerHTML='<div class="pg-h"><div class="pg-title">Phiếu cá nhân</div><div class="pg-sub">Theo dõi tiến bộ của từng trẻ qua các thời điểm trong năm học.</div></div>'+
+    '<div class="card"><div class="card-hdr"><div class="card-ttl"><i class="ti ti-user-check"></i>Chọn trẻ</div></div><div class="card-body">'+
+      '<select id="profile-child-select" class="ga-sel" onchange="profileSelectChild(this.value)" style="max-width:320px">'+childOptionsHtml(PROFILE_SELECTED_CHILD)+'</select>'+
+    '</div></div>'+
+    '<div id="child-profile-body">Đang tải...</div>';
+  loadChildProfileBody();
 }
+function profileSelectChild(id){ PROFILE_SELECTED_CHILD=id; loadChildProfileBody(); }
+function loadChildProfileBody(){
+  var el=document.getElementById('child-profile-body'); if(!el) return;
+  if(!PROFILE_SELECTED_CHILD){ el.innerHTML='<div class="note info">Chưa có trẻ nào. Vào "Theo dõi trẻ" để thêm trẻ trước.</div>'; return; }
+  var child=CHILDREN_LIST.find(function(c){ return String(c.id)===String(PROFILE_SELECTED_CHILD); });
+  Promise.all([
+    apiGet('/api/observations?child_id='+encodeURIComponent(PROFILE_SELECTED_CHILD)).catch(function(){return [];}),
+    apiGet('/api/portfolio?child_id='+encodeURIComponent(PROFILE_SELECTED_CHILD)).catch(function(){return [];})
+  ]).then(function(results){
+    var obs=results[0], pf=results[1];
+    el.innerHTML='<div class="records-info-grid"><div><b>Họ tên trẻ</b><span>'+escHtml(child?child.full_name:'')+'</span></div>'+
+      '<div><b>Ngày sinh</b><span>'+escHtml(child&&child.date_of_birth?child.date_of_birth:'Chưa cập nhật')+'</span></div>'+
+      '<div><b>Lớp</b><span>'+escHtml(child&&child.class_name?child.class_name:'Chưa cập nhật')+'</span></div>'+
+      '<div><b>Ghi chú</b><span>'+escHtml(child&&child.notes?child.notes:'—')+'</span></div></div>'+
+      '<h3 class="records-section-title">Nhật ký quan sát ('+obs.length+')</h3>'+
+      (obs.length?obs.slice().reverse().slice(0,5).map(function(o){return '<div class="records-log-card"><p>'+escHtml(o.note)+'</p></div>';}).join(''):'<div class="note info">Chưa có ghi nhận quan sát.</div>')+
+      '<h3 class="records-section-title">Portfolio ('+pf.length+')</h3>'+
+      (pf.length?pf.slice().reverse().slice(0,5).map(function(f){return '<div class="records-portfolio-card"><h4>'+escHtml(f.title)+'</h4><p>'+escHtml(f.note||'')+'</p></div>';}).join(''):'<div class="note info">Chưa có minh chứng portfolio.</div>');
+  });
+}
+
+var PF_SELECTED_CHILD='';
 function renderPortfolio(){
   var p=document.getElementById('p-portfolio'); if(!p) return;
-  var groups=['Sản phẩm của trẻ','Ảnh hoạt động','Câu nói nguyên văn','Video ngắn','Ghi nhận của giáo viên','Phản hồi của cha mẹ'].map(function(g){return '<span class="records-badge">'+g+'</span>';}).join('');
-  var cards=DEMO_EVIDENCE_FILES.concat(SELECTED_EVIDENCE_FILES.portfolio||[]).map(function(f){return '<div class="records-portfolio-card"><div class="records-thumb">'+(f.previewUrl?'<img src="'+f.previewUrl+'" alt="preview" />':'<i class="ti '+evidenceFileIcon(f.fileName,f.type)+'"></i>')+'</div><h4>'+f.fileName+'</h4><p><b>Ngày:</b> '+f.date+'</p><p><b>Lĩnh vực:</b> '+f.field+'</p><p><b>Mã/YCCĐ:</b> '+f.yccd+'</p><p><b>Năng lực/phẩm chất:</b> '+f.competency+'</p><p><b>Nhận xét:</b> '+f.teacherNote+'</p></div>';}).join('');
-  p.innerHTML='<div class="pg-h"><div class="pg-title">Portfolio</div><div class="pg-sub">Thư viện minh chứng học tập, sản phẩm, câu nói và nhận xét của giáo viên.</div></div>'+recordsDemoNotice()+recordsFilterBar(['Tên trẻ','Độ tuổi','Tháng/chủ đề','Lĩnh vực','Loại minh chứng'])+'<div class="records-badge-row">'+groups+'</div><div class="evidence-hero"><button onclick="openEvidenceModal(\'portfolio\')">+ Thêm minh chứng vào Portfolio</button><span>Tệp minh chứng minh họa – chưa lưu vào hệ thống.</span></div>'+renderEvidenceUploadBox('portfolio','Chọn file minh chứng cho Portfolio',true)+recordsDemoActions(['Xem portfolio','Xuất portfolio sau này'])+'<div class="records-portfolio-grid">'+cards+'</div>';
+  if(!PF_SELECTED_CHILD && CHILDREN_LIST.length) PF_SELECTED_CHILD=String(CHILDREN_LIST[0].id);
+  p.innerHTML='<div class="pg-h"><div class="pg-title">Portfolio</div><div class="pg-sub">Lưu minh chứng học tập, sản phẩm, câu nói và nhận xét của giáo viên.</div></div>'+
+    '<div class="card"><div class="card-hdr"><div class="card-ttl"><i class="ti ti-user-check"></i>Chọn trẻ</div></div><div class="card-body">'+
+      '<select id="pf-child-select" class="ga-sel" onchange="pfSelectChild(this.value)" style="max-width:320px">'+childOptionsHtml(PF_SELECTED_CHILD)+'</select>'+
+    '</div></div>'+
+    '<div class="card"><div class="card-hdr"><div class="card-ttl"><i class="ti ti-plus"></i>Thêm minh chứng mới</div></div><div class="card-body">'+
+      '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px">'+
+        '<div><div class="ga-lbl">Tiêu đề</div><input id="pf-title" class="ga-inp" placeholder="VD: Tranh vẽ gia đình"/></div>'+
+        '<div><div class="ga-lbl">Loại minh chứng</div><input id="pf-type" class="ga-inp" placeholder="Ảnh / Video / Sản phẩm / Câu nói"/></div>'+
+      '</div>'+
+      '<div style="margin-bottom:10px"><div class="ga-lbl">Nhận xét</div><textarea id="pf-note" class="ga-inp" rows="2" placeholder="Nhận xét của giáo viên về minh chứng này"></textarea></div>'+
+      '<button class="ga-main-btn" onclick="submitPortfolioItem()"><i class="ti ti-plus"></i> Lưu vào Portfolio</button>'+
+    '</div></div>'+
+    '<div class="card"><div class="card-hdr"><div class="card-ttl"><i class="ti ti-photo"></i>Minh chứng đã lưu</div></div><div class="card-body" id="pf-list">Đang tải...</div></div>';
+  loadPortfolioForSelected();
+}
+function pfSelectChild(id){ PF_SELECTED_CHILD=id; loadPortfolioForSelected(); }
+function loadPortfolioForSelected(){
+  var el=document.getElementById('pf-list'); if(!el) return;
+  if(!PF_SELECTED_CHILD){ el.innerHTML='<div class="note info">Chưa có trẻ nào. Vào "Theo dõi trẻ" để thêm trẻ trước.</div>'; return; }
+  apiGet('/api/portfolio?child_id='+encodeURIComponent(PF_SELECTED_CHILD)).then(function(list){
+    if(!list.length){ el.innerHTML='<div class="note info">Chưa có minh chứng portfolio nào cho trẻ này.</div>'; return; }
+    el.innerHTML='<div class="records-portfolio-grid">'+list.slice().reverse().map(function(f){
+      return '<div class="records-portfolio-card"><h4>'+escHtml(f.title)+'</h4>'+
+        (f.artifact_type?'<p><b>Loại:</b> '+escHtml(f.artifact_type)+'</p>':'')+
+        (f.note?'<p><b>Nhận xét:</b> '+escHtml(f.note)+'</p>':'')+
+      '</div>';
+    }).join('')+'</div>';
+  }).catch(function(e){ el.innerHTML='<div class="note warn">Lỗi tải dữ liệu: '+escHtml(e.message)+'</div>'; });
+}
+function submitPortfolioItem(){
+  if(!PF_SELECTED_CHILD){ toast('Chưa có trẻ để lưu minh chứng'); return; }
+  var title=document.getElementById('pf-title').value.trim();
+  if(!title){ toast('Vui lòng nhập tiêu đề minh chứng'); return; }
+  apiPost('/api/portfolio',{
+    child_id: parseInt(PF_SELECTED_CHILD,10),
+    title: title,
+    artifact_type: document.getElementById('pf-type').value.trim(),
+    note: document.getElementById('pf-note').value.trim()
+  }).then(function(){
+    document.getElementById('pf-title').value='';
+    document.getElementById('pf-type').value='';
+    document.getElementById('pf-note').value='';
+    toast('✅ Đã lưu vào Portfolio');
+    loadPortfolioForSelected();
+  }).catch(function(e){ toast('❌ '+e.message); });
 }
 function renderParentCommunication(){
   var p=document.getElementById('p-parent-sheet'); if(!p) return;
@@ -2552,7 +2682,7 @@ function renderNurseryOverview(){var p=document.getElementById('p-nt-overview');
 function renderKindergartenOverview(){var p=document.getElementById('p-mg-overview');if(!p)return;var ageCards=[['3–4 tuổi','Mẫu giáo bé – hình thành: không nhà trẻ hóa, hỗ trợ trẻ làm quen nề nếp mẫu giáo qua chơi và trải nghiệm.'],['4–5 tuổi','Mẫu giáo nhỡ – củng cố: mở rộng hợp tác, ngôn ngữ, tự lực, khám phá và biểu đạt.'],['5–6 tuổi','Mẫu giáo lớn – vững hơn, sẵn sàng vào lớp 1: không tiểu học hóa, ưu tiên năng lực nền tảng.']];var groups=[{name:'Khung năng lực',sheet:'KHUNGNL',tables:['competencies','qualities','domains'],page:'mg-framework',use:'tra cứu lĩnh vực, năng lực, phẩm chất và biểu hiện quan sát.'},{name:'Mốc phát triển',sheet:'MOCPT / các sheet mốc phát triển',tables:['milestones'],page:'mg-milestones',use:'theo dõi tiến trình 3–4, 4–5, 5–6 tuổi.'},{name:'Ma trận YCCĐ',sheet:'MATRANYCCD',tables:['yccd'],page:'overview-ct388',use:'đối chiếu YCCĐ với lĩnh vực, năng lực và độ tuổi.'},{name:'Kế hoạch năm 3–4T',sheet:'KHNAM_3_4T',tables:['year_plans'],page:'mg-year-plan',use:'xem khung kế hoạch năm cho mẫu giáo bé.'},{name:'Kế hoạch năm 4–5T',sheet:'KHNAM_4_5T',tables:['year_plans'],page:'mg-year-plan',use:'xem khung kế hoạch năm cho mẫu giáo nhỡ.'},{name:'Kế hoạch năm 5–6T',sheet:'KHNAM_5_6T',tables:['year_plans'],page:'mg-year-plan',use:'xem khung kế hoạch năm cho mẫu giáo lớn.'},{name:'Phiên chế 35 tuần',sheet:'PHIENCHE35TUAN',tables:['week_plans','year_plans'],page:'mg-35-weeks',use:'theo dõi tuần, giai đoạn, chủ đề/bối cảnh và trục năng lực.'},{name:'Ngân hàng hoạt động',sheet:'NGANHANGHD',tables:['activities'],page:'mg-activities',use:'chọn hoạt động theo tuổi, lĩnh vực, năng lực, phẩm chất, STEAM/SEL.'},{name:'Ngân hàng học liệu',sheet:'NGANHANGHL',tables:['activities'],page:'download',use:'quản lý học liệu/môi trường phục vụ hoạt động.'},{name:'Rubric',sheet:'RUBRIC',tables:['rubrics'],page:'mg-rubric',use:'quan sát I/H/V và hướng hỗ trợ tiếp theo.'},{name:'Bảng kiểm lớp',sheet:'Bảng kiểm lớp',tables:['assessments'],page:'mg-records',use:'theo dõi biểu hiện theo nhóm/lớp.'},{name:'Nhật ký quan sát',sheet:'Nhật ký quan sát',tables:['observations'],page:'mg-records',use:'ghi nhận bối cảnh, hành vi, lời nói và minh chứng.'},{name:'Phiếu cá nhân',sheet:'Phiếu cá nhân',tables:['children','assessments'],page:'mg-records',use:'tổng hợp tiến bộ và hướng hỗ trợ từng trẻ.'},{name:'Phiếu trao đổi cha mẹ',sheet:'Phiếu trao đổi cha mẹ',tables:['portfolio'],page:'mg-records',use:'chia sẻ minh chứng tích cực với cha mẹ.'},{name:'Portfolio',sheet:'Portfolio',tables:['portfolio'],page:'mg-records',use:'lưu minh chứng học tập, sản phẩm, câu nói và nhận xét.'},{name:'Dashboard lớp',sheet:'Dashboard lớp',tables:['children','observations','assessments'],page:'mg-records',use:'hỗ trợ điều chỉnh chuyên môn, không xếp hạng.'},{name:'Dashboard toàn trường',sheet:'Dashboard toàn trường',tables:['children','observations','assessments'],page:'mg-records',use:'xem xu hướng dữ liệu để hỗ trợ quản lý chuyên môn.'}];p.innerHTML='<div class="pg-h"><div class="pg-title">Tổng quan mẫu giáo</div><div class="pg-sub">Dashboard bộ Mẫu giáo 3–6 tuổi theo khung phẩm chất, năng lực, YCCĐ, kế hoạch, hoạt động và hồ sơ.</div></div>'+kindergartenDemoNotice()+kindergartenPrincipleNotice()+appImportNotice('Nếu trạng thái còn Demo/Chờ import Excel, hãy import dữ liệu lõi rồi kiểm tra lại thống kê trong Quản lý dữ liệu CTGDMN.')+'<div class="app-age-grid">'+ageCards.map(function(a){return '<div class="app-age-card kg"><b>'+a[0]+'</b><p>'+a[1]+'</p></div>';}).join('')+'</div><div class="app-data-dashboard">'+groups.map(appGroupCard).join('')+'</div>';}
 function renderNurseryRubric(){var p=document.getElementById('p-nt-rubric');if(!p)return;var levels=[['I','Khởi đầu','Cần hỗ trợ nhiều trong bối cảnh quen thuộc.'],['H','Hình thành','Bắt đầu tham gia khi được nhắc nhẹ hoặc làm cùng cô.'],['V','Vững chắc','Chủ động hơn trong nhiều bối cảnh sinh hoạt/chơi.'],['X','Chưa có cơ hội quan sát','Chưa đủ minh chứng, cần tiếp tục quan sát.']];var rows=[['Thích nghi - cảm xúc','Mã demo NT-RB1','Trẻ yên tâm hơn khi đến lớp và chấp nhận tương tác với cô.','Còn khóc/né tránh, cần cô ôm ấp và trấn an.','Chấp nhận tham gia khi cô ở gần hoặc gợi ý.','Chủ động tìm cô/bạn quen trong một số thời điểm.','Chưa đủ bối cảnh quan sát.','Ảnh/video đón trẻ, ghi chú cảm xúc.','Giữ nhịp sinh hoạt ổn định, tăng tương tác 1-1.'],['Tự phục vụ','Mã demo NT-RB2','Trẻ hợp tác trong ăn, uống, vệ sinh, thay đồ theo khả năng.','Phụ thuộc nhiều vào cô.','Làm một phần thao tác khi được nhắc/làm mẫu.','Tự thực hiện một số thao tác quen thuộc.','Chưa đủ minh chứng.','Ghi chú trong giờ ăn, rửa tay, thay đồ.','Chia nhỏ thao tác, dùng lời nhắc ngắn và hình ảnh.'],['Giao tiếp','Mã demo NT-RB3','Trẻ dùng cử chỉ, âm thanh, lời nói để bộc lộ nhu cầu.','Ít phản hồi hoặc chỉ khóc/căng thẳng.','Có phản hồi khi cô hỏi/gợi ý.','Chủ động gọi, chỉ, nói hoặc đưa đồ để giao tiếp.','Chưa đủ cơ hội.','Câu nói/cử chỉ nguyên văn, video ngắn.','Tăng chờ đợi, gọi tên cảm xúc và nhu cầu của trẻ.']];p.innerHTML='<div class="pg-h"><div class="pg-title">Rubric nhà trẻ</div><div class="pg-sub">Rubric demo/khung chờ dữ liệu thật từ sheet 11. RUBRIC NHÀ TRẺ.</div></div>'+nurseryDemoNotice()+appImportNotice('Chưa import rubric nhà trẻ từ Excel hoặc chưa kết nối dữ liệu thật. Bảng dưới đây là khung demo để tránh giao diện trống.')+'<div class="note warn"><i class="ti ti-alert-circle"></i><div>Rubric không dùng để xếp loại hoặc so sánh trẻ. Rubric dùng để xác định mức hỗ trợ và điều chỉnh kế hoạch.</div></div><div class="nursery-rubric-table">'+levels.map(function(l){return '<div class="nursery-rubric-cell"><div class="nursery-rubric-level">'+l[0]+'</div><h3>'+l[1]+'</h3><p>'+l[2]+'</p></div>';}).join('')+'</div><div class="kg-table-wrap"><table class="kg-table"><thead><tr><th>Lĩnh vực</th><th>Mã/YCCĐ</th><th>Biểu hiện quan sát</th><th>Mức I</th><th>Mức H</th><th>Mức V</th><th>Mức X</th><th>Minh chứng</th><th>Hướng hỗ trợ</th></tr></thead><tbody>'+rows.map(function(r){return '<tr>'+r.map(function(c,i){return '<td>'+(i===1?'<span class="year-plan-demo-tag">Demo</span><br>':'')+c+'</td>';}).join('')+'</tr>';}).join('')+'</tbody></table></div>';}
 var DEMO_KG_COMPETENCIES=[{code:'DEMO-TC1',age:'3-4',domain:'Thể chất',quality:'Tự tin',competency:'Tự lực',title:'Tham gia vận động phù hợp khả năng',observe:'Trẻ thử vận động, biết dừng khi cần hỗ trợ và chia sẻ cảm nhận.'},{code:'DEMO-NN1',age:'4-5',domain:'Ngôn ngữ',quality:'Nhân ái',competency:'Giao tiếp',title:'Trao đổi ý tưởng trong nhóm nhỏ',observe:'Trẻ nói, nghe, chờ lượt và dùng lời để bày tỏ nhu cầu.'},{code:'DEMO-NT1',age:'5-6',domain:'Nhận thức',quality:'Trách nhiệm',competency:'Giải quyết vấn đề',title:'Thử nghiệm nhiều cách giải quyết',observe:'Trẻ dự đoán, thử, điều chỉnh và nêu lý do đơn giản.'},{code:'DEMO-TM1',age:'3-4',domain:'Thẩm mỹ',quality:'Tự tin',competency:'Biểu đạt',title:'Biểu đạt bằng âm thanh, màu sắc, vận động',observe:'Trẻ lựa chọn vật liệu/cách thể hiện theo ý thích.'}];
-function loadApiOrDemo(endpoint,demo){return fetch(API_BASE+endpoint).then(function(r){if(!r.ok)throw new Error('api');return r.json();}).then(function(data){return(Array.isArray(data)&&data.length)?data:demo;}).catch(function(){return demo;});}
+function loadApiOrDemo(endpoint,demo){return fetch(API_BASE+endpoint,{headers:authHeaders()}).then(function(r){if(!r.ok)throw new Error('api');return r.json();}).then(function(data){return(Array.isArray(data)&&data.length)?data:demo;}).catch(function(){return demo;});}
 function loadCompetencies(){return loadApiOrDemo('/api/competencies',DEMO_KG_COMPETENCIES);}function loadMilestones(){return loadApiOrDemo('/api/milestones',DEMO_KG_MILESTONES);}function loadActivities(){return loadApiOrDemo('/api/activities',[]);}function loadRubrics(){return loadApiOrDemo('/api/rubrics',[]);}function loadYearPlans(){return loadApiOrDemo('/api/year-plans',[]);}function loadObservationForms(){return loadApiOrDemo('/api/observations',[]);}function loadPortfolioItems(){return loadApiOrDemo('/api/portfolio',[]);}
 function setKgFrameworkFilter(key,value){KG_FRAMEWORK_FILTERS[key]=value;renderKindergartenFrameworkList();}
 function renderKindergartenFramework(){var p=document.getElementById('p-mg-framework');if(!p)return;p.innerHTML='<div class="pg-h"><div class="pg-title">Khung năng lực mẫu giáo</div><div class="pg-sub">Có sẵn hàm loadCompetencies() để thử API; nếu backend/API lỗi thì hiển thị demo có mã DEMO rõ ràng.</div></div>'+kindergartenDemoNotice()+kindergartenPrincipleNotice()+appImportNotice('Chưa import khung năng lực từ Excel hoặc chưa có API dữ liệu thật. Dữ liệu dưới đây là demo/fallback.')+appFilterDemoNotice()+'<div class="kg-filter-panel"><select onchange="setKgFrameworkFilter(\'age\',this.value)"><option value="all">Độ tuổi</option><option value="3-4">3–4</option><option value="4-5">4–5</option><option value="5-6">5–6</option></select><select onchange="setKgFrameworkFilter(\'domain\',this.value)"><option value="all">Lĩnh vực</option><option>Thể chất</option><option>Nhận thức</option><option>Ngôn ngữ</option><option>Tình cảm - xã hội</option><option>Thẩm mỹ</option></select><select onchange="setKgFrameworkFilter(\'quality\',this.value)"><option value="all">Phẩm chất</option><option>Tự tin</option><option>Nhân ái</option><option>Trách nhiệm</option></select><select onchange="setKgFrameworkFilter(\'competency\',this.value)"><option value="all">Năng lực</option><option>Giao tiếp</option><option>Tự lực</option><option>Giải quyết vấn đề</option><option>Biểu đạt</option></select><input placeholder="Từ khóa..." oninput="setKgFrameworkFilter(\'keyword\',this.value)" /></div><div id="kg-framework-list"></div>';loadCompetencies().then(function(data){window.KG_COMPETENCY_CURRENT=data;renderKindergartenFrameworkList();});}
@@ -2617,6 +2747,43 @@ function clearAuthToken(){
 function authHeaders(){
   var token = getAuthToken();
   return token ? {'Authorization':'Bearer '+token} : {};
+}
+
+// ─── Small API helpers (per-school data: children/observations/portfolio) ──
+function apiGet(path){
+  return fetch(API_BASE+path,{headers:authHeaders()}).then(function(r){
+    return r.json().catch(function(){return {};}).then(function(d){
+      if(!r.ok) throw new Error(d.detail||('HTTP '+r.status));
+      return d;
+    });
+  });
+}
+function apiPost(path,body){
+  return fetch(API_BASE+path,{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify(body)}).then(function(r){
+    return r.json().catch(function(){return {};}).then(function(d){
+      if(!r.ok) throw new Error(d.detail||('HTTP '+r.status));
+      return d;
+    });
+  });
+}
+function apiDelete(path){
+  return fetch(API_BASE+path,{method:'DELETE',headers:authHeaders()}).then(function(r){
+    return r.json().catch(function(){return {};}).then(function(d){
+      if(!r.ok) throw new Error(d.detail||('HTTP '+r.status));
+      return d;
+    });
+  });
+}
+
+var CHILDREN_LIST = [];
+function loadChildren(){
+  return apiGet('/api/children').then(function(list){ CHILDREN_LIST=list||[]; return CHILDREN_LIST; }).catch(function(){ CHILDREN_LIST=[]; return CHILDREN_LIST; });
+}
+function childOptionsHtml(selectedId){
+  if(!CHILDREN_LIST.length) return '<option value="">Chưa có trẻ nào – vào "Theo dõi trẻ" bấm Thêm trẻ trước</option>';
+  return CHILDREN_LIST.map(function(c){
+    return '<option value="'+c.id+'"'+(String(c.id)===String(selectedId)?' selected':'')+'>'+escHtml(c.full_name)+(c.class_name?' – '+escHtml(c.class_name):'')+'</option>';
+  }).join('');
 }
 
 function showAuthForm(which){
