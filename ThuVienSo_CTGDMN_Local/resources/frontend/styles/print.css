@@ -1,0 +1,14 @@
+/* ─── IN ẤN (mới, GĐ1) ────────────────────────────────────────────────
+   Trước đây app không có quy tắc @media print riêng — tính năng "In KH"
+   mở một cửa sổ HTML độc lập với style inline (xem printGiaoAn() trong
+   main.js), nên file này chỉ bổ sung một baseline hợp lý cho trường hợp
+   người dùng in trực tiếp trang app (Ctrl+P) thay vì qua cửa sổ in riêng. */
+@media print{
+  #topbar-tagline,#topbar,#sidebar,#status-bar,.tbtn,.setup-skip,#toast,#modal-bg{
+    display:none !important;
+  }
+  #wrap{display:block}
+  #content{overflow:visible;padding:0}
+  .card{box-shadow:none;border:1px solid #ccc;break-inside:avoid}
+  body{background:#fff;color:#000}
+}

@@ -1,0 +1,12 @@
+/* ─── RESPONSIVE (tách từ style.css, GĐ1) ─────────────────────────────── */
+@media(max-width:680px){
+  #sidebar{display:none}
+  .rub-grid,.fl-grid,.st-grid,.guide-grid,.sb-grid{grid-template-columns:1fr}
+  .et-grid{grid-template-columns:120px repeat(4,1fr)}
+}
+
+/* Kiểm thử ở 1366x768 (màn hình máy tính giáo viên phổ biến) — thu hẹp vừa
+   phải các lưới nhiều cột để không bị tràn ngang. */
+@media(max-width:1366px){
+  .fl-grid,.st-grid,.sb-grid,.guide-grid{grid-template-columns:1fr 1fr}
+}

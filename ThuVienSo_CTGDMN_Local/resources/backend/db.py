@@ -180,14 +180,24 @@ year_plans = Table(
     ts_default_col("updated_at"),
 )
 
+# PLAN_STATUS values used across the annual->...->lesson_plan chain:
+# 'draft' | 'submitted' | 'approved' | 'in_progress' | 'completed' | 'adjusted'
+PLAN_STATUS_DEFAULT = "draft"
+
 month_plans = Table(
     "month_plans",
     metadata,
     Column("id", Integer, primary_key=True),
     Column("year_plan_id", Integer, ForeignKey("year_plans.id")),
+    Column("annual_plan_id", Integer, ForeignKey("school_annual_plans.id")),
+    Column("school_id", Integer, ForeignKey("schools.id")),
     Column("month_number", Integer),
     Column("theme_context", Text),
     Column("notes", Text),
+    Column("status", String, default=PLAN_STATUS_DEFAULT),
+    Column("version", Integer, default=1),
+    Column("created_by", Integer, ForeignKey("users.id")),
+    Column("approved_by", Integer, ForeignKey("users.id")),
     ts_default_col("created_at"),
     ts_default_col("updated_at"),
 )
@@ -197,9 +207,15 @@ week_plans = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("month_plan_id", Integer, ForeignKey("month_plans.id")),
+    Column("plan_35_week_id", Integer, ForeignKey("plan_35_weeks.id")),
+    Column("school_id", Integer, ForeignKey("schools.id")),
     Column("week_number", Integer),
     Column("title", String),
     Column("notes", Text),
+    Column("status", String, default=PLAN_STATUS_DEFAULT),
+    Column("version", Integer, default=1),
+    Column("created_by", Integer, ForeignKey("users.id")),
+    Column("approved_by", Integer, ForeignKey("users.id")),
     ts_default_col("created_at"),
     ts_default_col("updated_at"),
 )
@@ -209,10 +225,15 @@ day_plans = Table(
     metadata,
     Column("id", Integer, primary_key=True),
     Column("week_plan_id", Integer, ForeignKey("week_plans.id")),
+    Column("school_id", Integer, ForeignKey("schools.id")),
     Column("plan_date", String),
     Column("title", String),
     Column("care_nurture_notes", Text),
     Column("education_notes", Text),
+    Column("status", String, default=PLAN_STATUS_DEFAULT),
+    Column("version", Integer, default=1),
+    Column("created_by", Integer, ForeignKey("users.id")),
+    Column("approved_by", Integer, ForeignKey("users.id")),
     ts_default_col("created_at"),
     ts_default_col("updated_at"),
 )
@@ -264,6 +285,7 @@ observations = Table(
     Column("id", Integer, primary_key=True),
     Column("school_id", Integer, ForeignKey("schools.id"), nullable=False),
     Column("child_id", Integer, ForeignKey("children.id")),
+    Column("lesson_plan_id", Integer, ForeignKey("lesson_plans.id")),
     Column("observed_at", String),
     Column("context", Text),
     Column("note", Text, nullable=False),
@@ -280,6 +302,7 @@ assessments = Table(
     Column("school_id", Integer, ForeignKey("schools.id"), nullable=False),
     Column("child_id", Integer, ForeignKey("children.id")),
     Column("yccd_id", Integer, ForeignKey("yccd.id")),
+    Column("lesson_plan_id", Integer, ForeignKey("lesson_plans.id")),
     Column("assessment_date", String),
     Column("evidence", Text),
     Column("progress_note", Text),
@@ -316,6 +339,87 @@ school_settings = Table(
     ts_default_col("updated_at"),
 )
 
+# ─── Liên thông lập kế hoạch giáo dục: mục tiêu năm -> 35 tuần -> ... -> giáo án ──
+# (Khác với `year_plans` ở trên, vốn là mục tiêu CHƯƠNG TRÌNH gốc nhập từ Excel,
+# dùng chung cho mọi trường. `school_annual_plans` là kế hoạch NĂM của riêng từng
+# trường, do trường tự xây dựng dựa trên mục tiêu chương trình đó.)
+school_annual_plans = Table(
+    "school_annual_plans",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("school_id", Integer, ForeignKey("schools.id"), nullable=False),
+    Column("school_year", String, nullable=False),
+    Column("age_group_id", Integer, ForeignKey("age_groups.id")),
+    Column("title", String),
+    Column("goals_summary", Text),
+    Column("status", String, default=PLAN_STATUS_DEFAULT),
+    Column("version", Integer, default=1),
+    Column("created_by", Integer, ForeignKey("users.id")),
+    Column("approved_by", Integer, ForeignKey("users.id")),
+    ts_default_col("created_at"),
+    ts_default_col("updated_at"),
+)
+
+plan_35_weeks = Table(
+    "plan_35_weeks",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("school_annual_plan_id", Integer, ForeignKey("school_annual_plans.id"), nullable=False),
+    Column("week_number", Integer, nullable=False),  # 1..35
+    Column("theme_title", String),
+    Column("date_range", String),
+    Column("status", String, default=PLAN_STATUS_DEFAULT),
+    ts_default_col("created_at"),
+    ts_default_col("updated_at"),
+)
+
+lesson_plans = Table(
+    "lesson_plans",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("school_id", Integer, ForeignKey("schools.id"), nullable=False),
+    Column("day_plan_id", Integer, ForeignKey("day_plans.id")),
+    Column("age_group_id", Integer, ForeignKey("age_groups.id")),
+    Column("class_name", String),
+    Column("title", String),
+    Column("duration_minutes", Integer),
+    Column("activity_type", String),
+    Column("yccd_ids", Text),  # JSON list các mã YCCĐ liên quan, vd '["MGL1.2","MGL3.1"]'
+    Column("content_json", Text),  # JSON: 11 mục khung giáo án (mục tiêu, chuẩn bị, mở đầu, HĐ chính...)
+    Column("status", String, default=PLAN_STATUS_DEFAULT),
+    Column("version", Integer, default=1),
+    Column("created_by", Integer, ForeignKey("users.id")),
+    Column("approved_by", Integer, ForeignKey("users.id")),
+    ts_default_col("created_at"),
+    ts_default_col("updated_at"),
+)
+
+plan_adjustments = Table(
+    "plan_adjustments",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("school_id", Integer, ForeignKey("schools.id"), nullable=False),
+    Column("source_type", String, nullable=False),  # 'annual_plan' | 'month_plan' | 'week_plan' | 'day_plan' | 'lesson_plan'
+    Column("source_id", Integer, nullable=False),
+    Column("note", Text, nullable=False),
+    Column("created_by", Integer, ForeignKey("users.id")),
+    ts_default_col("created_at"),
+)
+
+audit_log = Table(
+    "audit_log",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("school_id", Integer, ForeignKey("schools.id")),
+    Column("user_id", Integer, ForeignKey("users.id")),
+    Column("action", String, nullable=False),  # 'create' | 'update' | 'delete' | 'approve' | 'export'...
+    Column("entity_type", String, nullable=False),
+    Column("entity_id", Integer),
+    Column("detail", Text),
+    ts_default_col("created_at"),
+)
+
+
 # Legacy desktop machine-lock license table (kept for the offline single-machine app).
 licenses = Table(
     "licenses",
@@ -331,7 +435,16 @@ licenses = Table(
 
 
 def init_database() -> None:
-    metadata.create_all(get_engine())
+    from sqlalchemy import inspect
+
+    engine = get_engine()
+    existing_tables = set(inspect(engine).get_table_names())
+    target_tables = set(metadata.tables.keys())
+    if existing_tables and not target_tables.issubset(existing_tables):
+        from backend.backup import backup_database
+
+        backup_database()
+    metadata.create_all(engine)
 
 
 def get_connection() -> Connection:

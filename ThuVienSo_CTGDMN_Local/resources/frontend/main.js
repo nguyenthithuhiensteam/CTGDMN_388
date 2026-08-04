@@ -1,8 +1,6 @@
-// ─── API BASE ───────────────────────────────────────────────────────────────
-// Desktop/Electron app and local dev serve the backend on 127.0.0.1:8000.
-// A hosted web deployment serves frontend + backend from the same origin,
-// so requests there are relative (same host, no CORS needed).
-var API_BASE = (location.hostname==='127.0.0.1' || location.hostname==='localhost' || location.protocol==='file:') ? 'http://127.0.0.1:8000' : '';
+// API_BASE, apiGet/apiPost/apiDelete, authHeaders... nằm trong js/api.js
+// CURRENT_ACCOUNT, CHILDREN_LIST, loadChildren, childOptionsHtml... nằm trong js/state.js
+// (2 file trên nạp trước main.js — xem index.html)
 
 // ─── STATE ──────────────────────────────────────────────────────────────────
 var AGE='nt', CUR_PAGE='home', CAL_MONTH=8, CAL_YEAR=2026;
@@ -2733,58 +2731,9 @@ window.resetPlanWizard=resetPlanWizard;
 window.copyPlanDraft=copyPlanDraft;
 
 // ─── AUTH GATE (đăng nhập theo trường) ─────────────────────────────────────
-var CURRENT_ACCOUNT = null;
-
-function getAuthToken(){
-  try { return localStorage.getItem('gdmn_auth_token') || ''; } catch(e){ return ''; }
-}
-function setAuthToken(token){
-  try { localStorage.setItem('gdmn_auth_token', token); } catch(e){}
-}
-function clearAuthToken(){
-  try { localStorage.removeItem('gdmn_auth_token'); } catch(e){}
-}
-function authHeaders(){
-  var token = getAuthToken();
-  return token ? {'Authorization':'Bearer '+token} : {};
-}
-
-// ─── Small API helpers (per-school data: children/observations/portfolio) ──
-function apiGet(path){
-  return fetch(API_BASE+path,{headers:authHeaders()}).then(function(r){
-    return r.json().catch(function(){return {};}).then(function(d){
-      if(!r.ok) throw new Error(d.detail||('HTTP '+r.status));
-      return d;
-    });
-  });
-}
-function apiPost(path,body){
-  return fetch(API_BASE+path,{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify(body)}).then(function(r){
-    return r.json().catch(function(){return {};}).then(function(d){
-      if(!r.ok) throw new Error(d.detail||('HTTP '+r.status));
-      return d;
-    });
-  });
-}
-function apiDelete(path){
-  return fetch(API_BASE+path,{method:'DELETE',headers:authHeaders()}).then(function(r){
-    return r.json().catch(function(){return {};}).then(function(d){
-      if(!r.ok) throw new Error(d.detail||('HTTP '+r.status));
-      return d;
-    });
-  });
-}
-
-var CHILDREN_LIST = [];
-function loadChildren(){
-  return apiGet('/api/children').then(function(list){ CHILDREN_LIST=list||[]; return CHILDREN_LIST; }).catch(function(){ CHILDREN_LIST=[]; return CHILDREN_LIST; });
-}
-function childOptionsHtml(selectedId){
-  if(!CHILDREN_LIST.length) return '<option value="">Chưa có trẻ nào – vào "Theo dõi trẻ" bấm Thêm trẻ trước</option>';
-  return CHILDREN_LIST.map(function(c){
-    return '<option value="'+c.id+'"'+(String(c.id)===String(selectedId)?' selected':'')+'>'+escHtml(c.full_name)+(c.class_name?' – '+escHtml(c.class_name):'')+'</option>';
-  }).join('');
-}
+// (getAuthToken/setAuthToken/clearAuthToken/authHeaders/apiGet/apiPost/apiDelete
+// nằm trong js/api.js; CURRENT_ACCOUNT/CHILDREN_LIST/loadChildren/childOptionsHtml
+// nằm trong js/state.js — cả hai nạp trước main.js)
 
 function showAuthForm(which){
   document.getElementById('auth-login-form').style.display = which==='login' ? 'block' : 'none';

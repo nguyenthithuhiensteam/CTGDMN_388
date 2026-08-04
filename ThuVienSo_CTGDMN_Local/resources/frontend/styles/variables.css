@@ -1,0 +1,23 @@
+/* ─── BIẾN GIAO DIỆN DÙNG CHUNG ──────────────────────────────────────────
+   variables.css nạp TRƯỚC style.css nên có thể ghi đè khi cần, nhưng ở đây
+   chỉ BỔ SUNG token mới — không xoá/đổi các biến --pk/--pu/--bl/--brand-*
+   cũ trong style.css để không làm vỡ các trang chưa được cập nhật theo
+   nhận diện thương hiệu mới (xem GĐ1 trong kế hoạch tái kiến trúc). */
+:root{
+  /* Bộ nhận diện thương hiệu chính thức (mục III yêu cầu thiết kế) */
+  --gdmn-green:#3A9A3E;      --gdmn-green-lt:#EAF6EB;      --gdmn-green-md:#BFE3C1;
+  --gdmn-blue:#1A6BDB;       --gdmn-blue-lt:#EAF1FD;       --gdmn-blue-md:#B9D2F7;
+  --gdmn-yellow:#F5C518;     --gdmn-yellow-lt:#FFF8E1;     --gdmn-yellow-md:#FBE8A6;
+  --gdmn-orange:#F5A623;     --gdmn-orange-lt:#FFF3E0;     --gdmn-orange-md:#FAD29B;
+  --gdmn-navy:#0A1F4E;       --gdmn-navy-lt:#E8EAF2;       --gdmn-navy-md:#B7BFD9;
+  --gdmn-red:#E84545;        --gdmn-red-lt:#FDEAEA;        --gdmn-red-md:#F6B8B8;
+  --gdmn-cream:#FBF9F3;      --gdmn-mint:#F1FAF3;
+
+  /* Bo góc / bóng đổ theo yêu cầu (14–18px, bóng nhẹ) */
+  --gdmn-r-sm:14px; --gdmn-r-lg:18px;
+  --gdmn-shadow:0 2px 14px rgba(10,31,78,.08);
+  --gdmn-shadow-lg:0 6px 28px rgba(10,31,78,.14);
+
+  /* Font chữ ưu tiên theo yêu cầu */
+  --gdmn-font:'Be Vietnam Pro','Inter',sans-serif;
+}
