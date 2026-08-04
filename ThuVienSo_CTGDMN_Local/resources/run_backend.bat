@@ -13,15 +13,12 @@ if errorlevel 1 (
     )
 )
 
-%PYTHON_CMD% -c "import fastapi, uvicorn" >nul 2>&1
+echo Dang kiem tra/cai thu vien backend tu requirements.txt ...
+%PYTHON_CMD% -m pip install -r requirements.txt
 if errorlevel 1 (
-    echo Dang cai thu vien backend tu requirements.txt ...
-    %PYTHON_CMD% -m pip install -r requirements.txt
-    if errorlevel 1 (
-        echo Cai thu vien that bai. Vui long kiem tra Python/pip/mang Internet.
-        pause
-        exit /b 1
-    )
+    echo Cai thu vien that bai. Vui long kiem tra Python/pip/mang Internet.
+    pause
+    exit /b 1
 )
 
 %PYTHON_CMD% -m backend.init_db

@@ -75,6 +75,12 @@ function runPythonOnce(pythonCmd, args, cwd) {
   });
 }
 
+async function ensureDependencies(pythonCmd, projectRoot) {
+  const reqPath = path.join(projectRoot, 'requirements.txt');
+  if (!fs.existsSync(reqPath)) return;
+  await runPythonOnce(pythonCmd, ['-m', 'pip', 'install', '-r', reqPath], projectRoot);
+}
+
 async function startBackendIfNeeded() {
   const alreadyRunning = await checkUrl(HEALTH_URL, 900);
   if (alreadyRunning) {
@@ -85,8 +91,14 @@ async function startBackendIfNeeded() {
   const projectRoot = getProjectRoot();
   const pythonCmd = await findPython();
   if (!pythonCmd) {
-    throw new Error('Không tìm thấy Python. Vui lòng cài Python 3.12 hoặc chạy thử run_backend.bat để kiểm tra môi trường.');
+    throw new Error('Không tìm thấy Python. Vui lòng cài Python 3.11 trở lên hoặc chạy thử run_backend.bat để kiểm tra môi trường.');
   }
+
+  // Cài (hoặc cập nhật) thư viện Python cần thiết mỗi lần khởi động — pip sẽ tự bỏ qua
+  // các gói đã có sẵn nên lần khởi động sau vẫn nhanh. Việc này đảm bảo requirements.txt
+  // mới (ví dụ khi ứng dụng được cập nhật) luôn được cài đủ trước khi chạy backend.
+  await runPythonOnce(pythonCmd, ['-m', 'pip', 'install', '--upgrade', 'pip'], projectRoot).catch(() => {});
+  await ensureDependencies(pythonCmd, projectRoot);
 
   await runPythonOnce(pythonCmd, ['-m', 'backend.init_db'], projectRoot);
 
@@ -154,7 +166,7 @@ function showBackendError(error) {
   const safeLog = backendLog.replace(/[&<>]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;' }[c]));
   mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(`
     <!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${APP_TITLE}</title>
-    <style>body{font-family:Segoe UI,Arial,sans-serif;background:#f5f7fb;color:#102033;margin:0;padding:36px}.box{max-width:900px;margin:auto;background:white;border:1px solid #d9e2ef;border-radius:16px;padding:26px;box-shadow:0 16px 40px rgba(15,23,42,.12)}h1{margin:0 0 12px;color:#0f3b66}.warn{background:#fff7ed;border-left:5px solid #f59e0b;padding:14px;border-radius:10px;line-height:1.55}code,pre{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px;display:block;white-space:pre-wrap;overflow:auto}p{line-height:1.6}.small{color:#64748b;font-size:13px}</style></head><body><div class="box"><h1>Không khởi động được backend</h1><div class="warn">${safeMessage}</div><p>Vui lòng kiểm tra Python 3.12, các thư viện trong <code>requirements.txt</code>, hoặc chạy thử <code>run_backend.bat</code>.</p><p class="small">Nếu backend đang chạy thủ công tại http://127.0.0.1:8000, hãy đóng app rồi mở lại.</p><h3>Log backend</h3><pre>${safeLog || 'Chưa có log.'}</pre></div></body></html>
+    <style>body{font-family:Segoe UI,Arial,sans-serif;background:#f5f7fb;color:#102033;margin:0;padding:36px}.box{max-width:900px;margin:auto;background:white;border:1px solid #d9e2ef;border-radius:16px;padding:26px;box-shadow:0 16px 40px rgba(15,23,42,.12)}h1{margin:0 0 12px;color:#0f3b66}.warn{background:#fff7ed;border-left:5px solid #f59e0b;padding:14px;border-radius:10px;line-height:1.55}code,pre{background:#0f172a;color:#e2e8f0;border-radius:10px;padding:12px;display:block;white-space:pre-wrap;overflow:auto}p{line-height:1.6}.small{color:#64748b;font-size:13px}</style></head><body><div class="box"><h1>Không khởi động được backend</h1><div class="warn">${safeMessage}</div><p>Vui lòng kiểm tra Python 3.11 trở lên, các thư viện trong <code>requirements.txt</code>, hoặc chạy thử <code>run_backend.bat</code>.</p><p class="small">Nếu backend đang chạy thủ công tại http://127.0.0.1:8000, hãy đóng app rồi mở lại.</p><h3>Log backend</h3><pre>${safeLog || 'Chưa có log.'}</pre></div></body></html>
   `)}`);
 }
 
