@@ -30,18 +30,43 @@ function apiGet(path){
   });
 }
 function apiPost(path,body){
+  markSaving();
   return fetch(API_BASE+path,{method:'POST',headers:Object.assign({'Content-Type':'application/json'},authHeaders()),body:JSON.stringify(body)}).then(function(r){
     return r.json().catch(function(){return {};}).then(function(d){
       if(!r.ok) throw new Error(d.detail||('HTTP '+r.status));
+      markSaved();
       return d;
     });
   });
 }
 function apiDelete(path){
+  markSaving();
   return fetch(API_BASE+path,{method:'DELETE',headers:authHeaders()}).then(function(r){
     return r.json().catch(function(){return {};}).then(function(d){
       if(!r.ok) throw new Error(d.detail||('HTTP '+r.status));
+      markSaved();
       return d;
     });
   });
+}
+
+// ─── Chỉ báo trạng thái lưu trên topbar (GĐ2) ───────────────────────────────
+function markSaving(){
+  var el = document.getElementById('tb-save-status');
+  var txt = document.getElementById('tb-save-status-text');
+  if(el) el.classList.add('saving');
+  if(txt) txt.textContent = 'Đang lưu...';
+}
+function markSaved(){
+  var el = document.getElementById('tb-save-status');
+  var txt = document.getElementById('tb-save-status-text');
+  if(el) el.classList.remove('saving');
+  if(txt){
+    var now = new Date();
+    var hh = String(now.getHours()).padStart(2,'0');
+    var mm = String(now.getMinutes()).padStart(2,'0');
+    txt.textContent = 'Đã lưu lúc ' + hh + ':' + mm;
+  }
+  var sb = document.getElementById('sb-last-saved');
+  if(sb) sb.textContent = 'Lưu gần nhất: vừa xong';
 }

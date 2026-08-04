@@ -39,30 +39,32 @@
     </div>
   </div>
   <div class="tb-actions">
-    <button class="school-pill" id="school-pill-btn" onclick="openSchoolSetup()" title="Đổi tên trường"><i class="ti ti-school" style="font-size:14px"></i> <span id="school-pill-name">Cài đặt trường</span></button>
-    <button class="tbtn" onclick="openAiSettings()" title="Cài đặt Anthropic API key cho Trợ lý AI"><i class="ti ti-key"></i> Cài đặt AI</button>
-    <button class="tbtn" id="btn-search" onclick="toggleSearch()"><i class="ti ti-search"></i> Tìm kiếm</button>
-    <button class="tbtn" onclick="doLogout()" title="Đăng xuất"><i class="ti ti-logout"></i> Đăng xuất</button>
-    <button class="tbtn" onclick="goPage('download')"><i class="ti ti-download"></i> Tải hồ sơ</button>
+    <div class="tb-search-inline">
+      <i class="ti ti-search"></i>
+      <input id="tb-search-in" placeholder="Tìm kiếm nội dung..." onkeydown="if(event.key==='Enter'&&this.value.trim()) doSearch(this.value)">
+    </div>
+    <span class="tb-save-status" id="tb-save-status" title="Trạng thái lưu dữ liệu"><i class="ti ti-cloud-check"></i> <span id="tb-save-status-text">Đã đồng bộ</span></span>
+    <button class="tb-icon-btn" id="btn-notify" onclick="toggleNotifications()" title="Thông báo hoạt động gần đây"><i class="ti ti-bell"></i><span class="tb-notify-dot" id="tb-notify-dot" style="display:none"></span></button>
+    <div id="tb-notify-panel" class="tb-notify-panel" style="display:none"></div>
     <button class="tbtn" onclick="openPrint()"><i class="ti ti-printer"></i> In KH</button>
+    <div class="tb-user" onclick="goPage('settings')" title="Vào Cài đặt">
+      <span class="tb-avatar" id="tb-user-avatar">?</span>
+      <span class="tb-user-name" id="tb-user-name">Đang tải...</span>
+    </div>
+    <button class="tb-icon-btn" onclick="doLogout()" title="Đăng xuất"><i class="ti ti-logout"></i></button>
   </div>
 </div>
 
 <!-- MAIN -->
 <div id="wrap">
 
-<!-- SIDEBAR -->
+<!-- SIDEBAR (12 mục theo yêu cầu thiết kế lại, GĐ2) -->
 <nav id="sidebar">
   <div class="srch-wrap" id="srch-box" style="display:none">
     <div class="srch"><i class="ti ti-search"></i><input id="srch-in" placeholder="Tìm kiếm nội dung..." oninput="doSearch(this.value)"></div>
   </div>
     <div id="sidebar-scroll">
-    <div class="nav-sec">Tổng quan</div>
-    <div class="nav-a on" onclick="nav(this,'home')"><i class="ti ti-home"></i>Trang chủ</div>
-    <div class="nav-a" onclick="nav(this,'overview-ct388')"><i class="ti ti-layout-dashboard"></i>Tổng quan sử dụng CTGDMN</div>
-    <div class="nav-a" onclick="nav(this,'guide')"><i class="ti ti-help-circle"></i>Hướng dẫn sử dụng</div>
-
-    <div class="nav-sec" style="margin-top:8px">Lọc theo độ tuổi</div>
+    <div class="nav-sec">Lọc theo độ tuổi</div>
     <div class="age-row grouped">
       <span class="age-label">Nhà trẻ</span>
       <span class="ap nt nt12 on" onclick="setAge('nt12',this)" title="Nhà trẻ 12-24 tháng">12-24T</span>
@@ -73,43 +75,19 @@
       <span class="ap mg5" onclick="setAge('mg5',this)" title="Mẫu giáo Lớn 5-6T">5-6T</span>
     </div>
 
-    <div class="nav-sec">Bộ Nhà trẻ</div>
-    <div class="nav-a" onclick="nav(this,'nt-overview')"><i class="ti ti-baby-carriage"></i>Tổng quan nhà trẻ</div>
-    <div class="nav-a" onclick="nav(this,'nt-milestones')"><i class="ti ti-stairs-up"></i>Mốc phát triển 12-36 tháng</div>
-    <div class="nav-a" onclick="nav(this,'nt-daily')"><i class="ti ti-sun"></i>Giáo dục trong sinh hoạt</div>
-    <div class="nav-a" onclick="nav(this,'nt-activities')"><i class="ti ti-puzzle"></i>Hoạt động nhà trẻ</div>
-    <div class="nav-a" onclick="nav(this,'nt-rubric')"><i class="ti ti-checkbox"></i>Rubric nhà trẻ</div>
-    <div class="nav-a" onclick="nav(this,'nt-records')"><i class="ti ti-folder-open"></i>Hồ sơ nhà trẻ</div>
-
-    <div class="nav-sec">Bộ Mẫu giáo</div>
-    <div class="nav-a" onclick="nav(this,'mg-overview')"><i class="ti ti-school"></i>Tổng quan mẫu giáo</div>
-    <div class="nav-a" onclick="nav(this,'mg-framework')"><i class="ti ti-stars"></i>Khung năng lực mẫu giáo</div>
-    <div class="nav-a" onclick="nav(this,'mg-milestones')"><i class="ti ti-chart-dots"></i>Mốc phát triển mẫu giáo</div>
-    <div class="nav-a" onclick="nav(this,'mg-year-plan')"><i class="ti ti-calendar"></i>Kế hoạch năm mẫu giáo</div>
-    <div class="nav-a" onclick="nav(this,'mg-35-weeks')"><i class="ti ti-calendar-week"></i>Phiên chế 35 tuần</div>
-    <div class="nav-a" onclick="nav(this,'mg-activities')"><i class="ti ti-notes"></i>Hoạt động mẫu giáo</div>
-    <div class="nav-a" onclick="nav(this,'mg-rubric')"><i class="ti ti-checkbox"></i>Rubric mẫu giáo</div>
-    <div class="nav-a" onclick="nav(this,'mg-records')"><i class="ti ti-folder-open"></i>Hồ sơ mẫu giáo</div>
-
-    <div class="nav-sec">Lập kế hoạch</div>
-    <div class="nav-a" onclick="nav(this,'plan-from-data')"><i class="ti ti-database-edit"></i>Tạo kế hoạch từ dữ liệu</div>
-    <div class="nav-a" onclick="nav(this,'kh')"><i class="ti ti-calendar"></i>Kế hoạch năm</div>
-    <div class="nav-a" onclick="nav(this,'tuan')"><i class="ti ti-calendar-week"></i>Kế hoạch tuần</div>
-    <div class="nav-a" onclick="nav(this,'baihoc')"><i class="ti ti-notes"></i>Kế hoạch hoạt động</div>
-    <div class="nav-a" onclick="nav(this,'builder')"><i class="ti ti-layout-grid"></i>Xây kế hoạch nhanh</div>
-
-    <div class="nav-sec">Đánh giá - Hồ sơ</div>
-    <div class="nav-a" onclick="nav(this,'tracker')"><i class="ti ti-user-check"></i>Theo dõi trẻ</div>
-    <div class="nav-a" onclick="nav(this,'observation-log')"><i class="ti ti-eye-check"></i>Nhật ký quan sát</div>
-    <div class="nav-a" onclick="nav(this,'child-profile')"><i class="ti ti-id"></i>Phiếu cá nhân</div>
-    <div class="nav-a" onclick="nav(this,'portfolio')"><i class="ti ti-photo"></i>Portfolio</div>
-    <div class="nav-a" onclick="nav(this,'parent-sheet')"><i class="ti ti-message-heart"></i>Phiếu cha mẹ</div>
-    <div class="nav-a" onclick="nav(this,'dashboard')"><i class="ti ti-chart-bar"></i>Dashboard</div>
-
-    <div class="nav-sec">Quản trị</div>
-    <div class="nav-a" onclick="nav(this,'data-admin')"><i class="ti ti-database-cog"></i>Quản lý dữ liệu CTGDMN</div>
-    <div class="nav-a" onclick="nav(this,'download')"><i class="ti ti-folder"></i>Hồ sơ & Tải về</div>
-
+    <div class="nav-sec">Điều hướng chính</div>
+    <div class="nav-a on" data-navid="home" onclick="nav(this,'home')"><i class="ti ti-home"></i>Trang chủ</div>
+    <div class="nav-a" data-navid="curriculum" onclick="nav(this,'ct')"><i class="ti ti-books"></i>Chương trình GDMN</div>
+    <div class="nav-a" data-navid="school-program" onclick="nav(this,'overview-ct388')"><i class="ti ti-building"></i>Chương trình nhà trường</div>
+    <div class="nav-a" data-navid="planning" onclick="nav(this,'kh')"><i class="ti ti-calendar-event"></i>Lập kế hoạch giáo dục</div>
+    <div class="nav-a" data-navid="library" onclick="nav(this,'baihoc')"><i class="ti ti-puzzle"></i>Thư viện hoạt động</div>
+    <div class="nav-a" data-navid="children" onclick="nav(this,'tracker')"><i class="ti ti-user-check"></i>Trẻ và lớp học</div>
+    <div class="nav-a" data-navid="assessment" onclick="nav(this,'observation-log')"><i class="ti ti-eye-check"></i>Quan sát – đánh giá</div>
+    <div class="nav-a" data-navid="portfolio" onclick="nav(this,'portfolio')"><i class="ti ti-photo"></i>Portfolio</div>
+    <div class="nav-a" data-navid="inclusion" onclick="nav(this,'inclusion')"><i class="ti ti-heart-handshake"></i>Giáo dục hòa nhập</div>
+    <div class="nav-a" data-navid="reports" onclick="nav(this,'dashboard')"><i class="ti ti-chart-bar"></i>Báo cáo – Dashboard</div>
+    <div class="nav-a" data-navid="ai" onclick="nav(this,'gaiaoan')"><i class="ti ti-robot"></i>Trợ lý AI</div>
+    <div class="nav-a" data-navid="settings" onclick="nav(this,'settings')"><i class="ti ti-settings"></i>Cài đặt</div>
   </div>
 </nav>
 
@@ -118,6 +96,37 @@
 
 <!-- ──────────────── HOME ──────────────── -->
 <div class="page on" id="p-home">
+
+  <!-- Bàn làm việc (GĐ2) — chào mừng, tổng quan, tiến trình kế hoạch, việc cần làm, hoạt động gần đây -->
+  <div class="card wd-welcome" id="home-welcome-card">
+    <div class="card-body" id="home-welcome-body">Đang tải...</div>
+  </div>
+
+  <div class="wd-cards" id="home-overview-cards"></div>
+
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-hdr"><div class="card-ttl"><i class="ti ti-route"></i>Tiến trình lập kế hoạch giáo dục liên thông</div></div>
+    <div class="card-body">
+      <div class="note info" style="margin-bottom:12px"><i class="ti ti-info-circle"></i><div>Dữ liệu minh họa – trạng thái từng bước sẽ cập nhật thật khi có màn hình thao tác kế hoạch (giai đoạn tiếp theo).</div></div>
+      <div class="wd-stepper" id="home-stepper"></div>
+    </div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
+    <div class="card">
+      <div class="card-hdr"><div class="card-ttl"><i class="ti ti-checklist"></i>Công việc cần hoàn thành</div></div>
+      <div class="card-body">
+        <div class="note info" style="margin-bottom:10px"><i class="ti ti-info-circle"></i><div>Dữ liệu minh họa – chưa nối bảng công việc thật.</div></div>
+        <div id="home-todo"></div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-hdr"><div class="card-ttl"><i class="ti ti-history"></i>Hoạt động gần đây</div></div>
+      <div class="card-body" id="home-activity">Đang tải...</div>
+    </div>
+  </div>
+
+  <!-- Giới thiệu chương trình (nội dung trang chủ trước GĐ2, giữ nguyên bên dưới bàn làm việc) -->
   <div class="hero">
     <div class="hero-content">
       <h1>Chương trình Giáo dục Mầm non Thí điểm 2026</h1>
@@ -557,8 +566,63 @@
 <div class="page" id="p-parent-sheet"><div class="pg-h"><div class="pg-title">Phiếu cha mẹ</div><div class="pg-sub">Mẫu trao đổi với cha mẹ theo hướng đồng hành, không so sánh trẻ.</div></div><div class="note info"><i class="ti ti-info-circle"></i><div>Dữ liệu minh họa – sẽ thay bằng dữ liệu từ Excel sau khi import.</div></div></div>
 <div class="page" id="p-dashboard"><div class="pg-h"><div class="pg-title">Dashboard</div><div class="pg-sub">Dashboard chuyên môn để hỗ trợ điều chỉnh hoạt động, không phục vụ thi đua/xếp hạng.</div></div><div class="note warn"><i class="ti ti-alert-circle"></i><div>Dữ liệu minh họa – sẽ thay bằng dữ liệu từ Excel sau khi import.</div></div></div>
 <div class="page" id="p-data-admin"><div class="pg-h"><div class="pg-title">Quản lý dữ liệu CTGDMN</div><div class="pg-sub">Theo dõi trạng thái backend, database, file Excel nguồn và tiến độ import dữ liệu vào app. Trang này chỉ kiểm tra trạng thái, không chỉnh sửa dữ liệu giáo dục.</div></div><div class="note info"><i class="ti ti-info-circle"></i><div>Dữ liệu minh họa – sẽ thay bằng dữ liệu từ Excel sau khi import.</div></div></div>
+
+<!-- Giáo dục hoà nhập (mục mới, GĐ2 – khung, nội dung thật ở giai đoạn sau) -->
+<div class="page" id="p-inclusion">
+  <div class="pg-h"><div class="pg-title">Giáo dục hòa nhập</div><div class="pg-sub">Hỗ trợ trẻ có nhu cầu đặc biệt: kế hoạch cá nhân hóa, mục tiêu điều chỉnh, ghi nhận tiến bộ riêng.</div></div>
+  <div class="note info"><i class="ti ti-info-circle"></i><div>Dữ liệu minh họa – tính năng đang được xây dựng ở giai đoạn tiếp theo.</div></div>
+  <div class="placeholder-grid">
+    <div class="placeholder-card"><div class="placeholder-icon"><i class="ti ti-heart-handshake"></i></div><div><h3>Kế hoạch giáo dục cá nhân (IEP)</h3><p>Mục tiêu riêng, điều chỉnh nội dung/hoạt động theo nhu cầu từng trẻ.</p></div></div>
+    <div class="placeholder-card"><div class="placeholder-icon"><i class="ti ti-users-group"></i></div><div><h3>Phối hợp hỗ trợ</h3><p>Ghi nhận phối hợp giữa giáo viên, gia đình và chuyên gia hỗ trợ (nếu có).</p></div></div>
+  </div>
+</div>
+
+<!-- Cài đặt (mục mới, GĐ2 – gộp Cài đặt trường + Cài đặt AI đã có + quản lý giáo viên qua /api/auth/teachers) -->
+<div class="page" id="p-settings">
+  <div class="pg-h"><div class="pg-title">Cài đặt</div><div class="pg-sub">Thông tin tài khoản, cài đặt trường, cài đặt Trợ lý AI và quản lý tài khoản giáo viên.</div></div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-hdr"><div class="card-ttl"><i class="ti ti-user-circle"></i>Tài khoản đang đăng nhập</div></div>
+    <div class="card-body" id="settings-account-info">Đang tải...</div>
+  </div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-hdr"><div class="card-ttl"><i class="ti ti-settings"></i>Cài đặt chung</div></div>
+    <div class="card-body" style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="ga-sec-btn" onclick="openSchoolSetup()"><i class="ti ti-school"></i> Cài đặt trường</button>
+      <button class="ga-sec-btn" onclick="openAiSettings()"><i class="ti ti-key"></i> Cài đặt Trợ lý AI</button>
+      <button class="ga-sec-btn" onclick="goPage('data-admin')"><i class="ti ti-database"></i> Quản lý dữ liệu CTGDMN</button>
+      <button class="ga-sec-btn" onclick="goPage('download')"><i class="ti ti-download"></i> Tải hồ sơ</button>
+      <button class="ga-sec-btn" onclick="doLogout()"><i class="ti ti-logout"></i> Đăng xuất</button>
+    </div>
+  </div>
+  <div class="card" id="settings-teachers-card" style="display:none">
+    <div class="card-hdr"><div class="card-ttl"><i class="ti ti-users"></i>Tài khoản giáo viên</div></div>
+    <div class="card-body">
+      <div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px">
+        <input id="settings-teacher-name" class="setup-inp" placeholder="Họ tên giáo viên" style="flex:1;min-width:140px">
+        <input id="settings-teacher-email" class="setup-inp" type="email" placeholder="Email đăng nhập" style="flex:1;min-width:160px">
+        <input id="settings-teacher-password" class="setup-inp" type="password" placeholder="Mật khẩu (tối thiểu 6 ký tự)" style="flex:1;min-width:160px">
+        <button class="ga-sec-btn" onclick="addTeacherAccount()"><i class="ti ti-user-plus"></i> Thêm giáo viên</button>
+      </div>
+      <div id="settings-teacher-error" style="color:var(--brand-red,#E84545);font-size:12px;margin-bottom:8px"></div>
+      <div id="settings-teacher-list">Đang tải...</div>
+    </div>
+  </div>
+</div>
 </div><!-- end content -->
 </div><!-- end wrap -->
+
+<!-- STATUS BAR (mới, GĐ2) -->
+<div id="status-bar">
+  <span class="sb-item" id="sb-offline-note" style="display:none"><span class="sb-dot"></span>Dữ liệu được lưu cục bộ · Có thể làm việc không cần Internet</span>
+  <span class="sb-sep">|</span>
+  <span class="sb-item" id="sb-last-saved"><i class="ti ti-device-floppy"></i>Chưa có thay đổi</span>
+  <span class="sb-sep">|</span>
+  <span class="sb-item" id="sb-backend-status"><span class="sb-dot off"></span>Đang kiểm tra backend...</span>
+  <span class="sb-spacer"></span>
+  <span class="sb-item sb-footer">NGUYỄN THU HIỀN – HỌC BẰNG CHIA SẺ</span>
+  <span class="sb-sep">|</span>
+  <span class="sb-item" id="sb-app-version">v1.0.1</span>
+</div>
 
 <!-- AUTH OVERLAY (đăng nhập / đăng ký trường) -->
 <div id="auth-overlay" style="display:none">

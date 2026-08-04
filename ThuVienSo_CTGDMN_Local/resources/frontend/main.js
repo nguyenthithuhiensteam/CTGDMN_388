@@ -219,6 +219,8 @@ function nav(el,id){
   if(id==='dashboard') renderDashboard();
   if(id==='data-admin') renderDataAdmin();
   if(id==='overview-ct388') renderOverviewHub();
+  if(id==='settings') renderSettings();
+  if(id==='home') renderHomeDashboard();
 }
 
 function setAge(a,el){
@@ -1925,7 +1927,7 @@ function saveSchoolSetup(){
 
 function skipSchoolSetup(){
   document.getElementById('setup-overlay').style.display='none';
-  document.getElementById('school-pill-name').textContent='Cài đặt trường';
+  updateSchoolPill();
 }
 
 function openSchoolSetup(){
@@ -1974,6 +1976,64 @@ function saveAiApiKey(){
       closeModalBtn();
     })
     .catch(function(e){ toast('❌ ' + e.message); });
+}
+
+// ─── CÀI ĐẶT (GĐ2 — gộp tài khoản, cài đặt trường/AI, quản lý giáo viên) ────────
+function renderSettingsAccountInfo(){
+  var infoEl = document.getElementById('settings-account-info');
+  if(!infoEl) return;
+  if(!CURRENT_ACCOUNT){ infoEl.textContent = 'Không xác định được tài khoản đang đăng nhập.'; return; }
+  infoEl.innerHTML =
+    '<div style="display:flex;flex-direction:column;gap:4px;font-size:13px">' +
+    '<div><b>Họ tên:</b> ' + escHtml(CURRENT_ACCOUNT.full_name || '(chưa đặt)') + '</div>' +
+    '<div><b>Email:</b> ' + escHtml(CURRENT_ACCOUNT.email || '') + '</div>' +
+    '<div><b>Vai trò:</b> ' + (CURRENT_ACCOUNT.role === 'admin' ? 'Quản trị trường' : 'Giáo viên') + '</div>' +
+    '<div><b>Trường:</b> ' + escHtml(CURRENT_ACCOUNT.school_name || '') + '</div>' +
+    '</div>';
+}
+
+function renderSettings(){
+  var infoEl = document.getElementById('settings-account-info');
+  if(infoEl) infoEl.textContent = 'Đang tải...';
+  // AuthResponse (đăng nhập/đăng ký) không có email — nạp lại /api/auth/me để chắc chắn dữ liệu đủ.
+  apiGet('/api/auth/me').then(function(me){
+    CURRENT_ACCOUNT = Object.assign({}, CURRENT_ACCOUNT, me);
+    renderSettingsAccountInfo();
+    updateTopbarUser();
+    var teachersCard = document.getElementById('settings-teachers-card');
+    if(!teachersCard) return;
+    if(CURRENT_ACCOUNT.role !== 'admin'){ teachersCard.style.display = 'none'; return; }
+    teachersCard.style.display = '';
+    loadTeacherList();
+  }).catch(function(){ renderSettingsAccountInfo(); });
+}
+
+function loadTeacherList(){
+  var listEl = document.getElementById('settings-teacher-list');
+  if(!listEl) return;
+  apiGet('/api/auth/teachers').then(function(list){
+    if(!list || !list.length){ listEl.innerHTML = '<div class="note info"><i class="ti ti-info-circle"></i><div>Chưa có tài khoản giáo viên nào.</div></div>'; return; }
+    listEl.innerHTML = '<table class="overview-table"><thead><tr><th>Họ tên</th><th>Email</th><th>Vai trò</th></tr></thead><tbody>' +
+      list.map(function(u){ return '<tr><td>' + escHtml(u.full_name || '(chưa đặt)') + '</td><td>' + escHtml(u.email) + '</td><td>' + (u.role === 'admin' ? 'Quản trị' : 'Giáo viên') + '</td></tr>'; }).join('') +
+      '</tbody></table>';
+  }).catch(function(e){
+    listEl.innerHTML = '<div class="note warn"><i class="ti ti-alert-circle"></i><div>Không tải được danh sách: ' + escHtml(e.message) + '</div></div>';
+  });
+}
+
+function addTeacherAccount(){
+  var nameEl = document.getElementById('settings-teacher-name');
+  var emailEl = document.getElementById('settings-teacher-email');
+  var pwEl = document.getElementById('settings-teacher-password');
+  var errEl = document.getElementById('settings-teacher-error');
+  errEl.textContent = '';
+  var full_name = nameEl.value.trim(), email = emailEl.value.trim(), password = pwEl.value;
+  if(!email || password.length < 6){ errEl.textContent = 'Vui lòng nhập email hợp lệ và mật khẩu tối thiểu 6 ký tự.'; return; }
+  apiPost('/api/auth/teachers', {email:email, password:password, full_name:full_name}).then(function(){
+    toast('✅ Đã thêm tài khoản giáo viên');
+    nameEl.value=''; emailEl.value=''; pwEl.value='';
+    loadTeacherList();
+  }).catch(function(e){ errEl.textContent = e.message; });
 }
 
 // ─── INIT ─────────────────────────────────────────────────────────────────────
@@ -2805,6 +2865,211 @@ function doLogout(){
 
 function bootApp(){
   loadSchoolData();
+  updateTopbarUser();
+  initStatusBar();
+  checkNotificationsDot();
+  renderHomeDashboard();
+}
+
+// ─── TRANG CHỦ "BÀN LÀM VIỆC" (mới, GĐ2) ────────────────────────────────────
+var HOME_STEPPER_STEPS = [
+  {label:'Mục tiêu năm', page:'kh'},
+  {label:'35 tuần', page:'kh'},
+  {label:'Tháng/chủ đề', page:'kh'},
+  {label:'Tuần', page:'tuan'},
+  {label:'Ngày', page:'kh'},
+  {label:'Giáo án', page:'gaiaoan'},
+  {label:'Đánh giá', page:'observation-log'},
+];
+
+function renderHomeWelcome(){
+  var el = document.getElementById('home-welcome-body');
+  if(!el) return;
+  var name = (CURRENT_ACCOUNT && (CURRENT_ACCOUNT.full_name || CURRENT_ACCOUNT.email)) || 'bạn';
+  var school = (CURRENT_ACCOUNT && CURRENT_ACCOUNT.school_name) || SCHOOL_NAME || '';
+  var now = new Date();
+  var month = now.getMonth() + 1; // 1-12
+  var schoolYearStart = month >= 9 ? now.getFullYear() : now.getFullYear() - 1;
+  var schoolYearLabel = schoolYearStart + '–' + (schoolYearStart + 1);
+  var dateLabel = now.toLocaleDateString('vi-VN', {weekday:'long', day:'2-digit', month:'2-digit', year:'numeric'});
+  el.innerHTML =
+    '<div class="wd-welcome-row">' +
+    '<div><div class="wd-welcome-title">Chào ' + escHtml(name) + (school ? ' – ' + escHtml(school) : '') + '</div>' +
+    '<div class="wd-welcome-sub">' + dateLabel + ' · Năm học ' + schoolYearLabel + '</div></div>' +
+    '<button class="wd-welcome-continue" onclick="goPage(\'kh\')"><i class="ti ti-player-play"></i> Tiếp tục kế hoạch hiện tại</button>' +
+    '</div>';
+}
+
+function renderHomeOverviewCards(){
+  var el = document.getElementById('home-overview-cards');
+  if(!el) return;
+  el.innerHTML = '<div class="wd-card">Đang tải...</div>';
+  Promise.all([
+    apiGet('/api/children').catch(function(){ return []; }),
+    apiGet('/api/observations').catch(function(){ return []; }),
+  ]).then(function(results){
+    var children = results[0] || [];
+    var observations = results[1] || [];
+    var weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    var recentObs = observations.filter(function(o){
+      if(!o.created_at) return false;
+      var t = new Date(o.created_at.endsWith('Z') ? o.created_at : o.created_at + 'Z').getTime();
+      return t >= weekAgo;
+    });
+    var cards = [
+      {n: children.length, l: 'Trẻ đang theo dõi', page: 'tracker', demo: false},
+      {n: recentObs.length, l: 'Quan sát 7 ngày qua', page: 'observation-log', demo: false},
+      {n: 0, l: 'Kế hoạch đang thực hiện', page: 'kh', demo: true},
+      {n: 0, l: 'Minh chứng cần bổ sung', page: 'portfolio', demo: true},
+      {n: 0, l: 'Mục tiêu năm chưa phân bổ', page: 'kh', demo: true},
+    ];
+    el.innerHTML = cards.map(function(c){
+      return '<div class="wd-card" onclick="goPage(\'' + c.page + '\')">' +
+        '<div class="wd-card-n" style="color:var(--gdmn-blue,#1A6BDB)">' + c.n + '</div>' +
+        '<div class="wd-card-l">' + escHtml(c.l) + '</div>' +
+        (c.demo ? '<div class="wd-card-demo"><i class="ti ti-flask"></i> Dữ liệu minh họa</div>' : '') +
+        '</div>';
+    }).join('');
+  });
+}
+
+function renderHomeStepper(){
+  var el = document.getElementById('home-stepper');
+  if(!el) return;
+  el.innerHTML = HOME_STEPPER_STEPS.map(function(s, i){
+    var state = i === 0 ? 'current' : 'pending';
+    return '<div class="wd-step ' + state + '" onclick="goPage(\'' + s.page + '\')">' +
+      '<div class="wd-step-n">BƯỚC ' + (i + 1) + '</div>' +
+      '<div class="wd-step-label">' + escHtml(s.label) + '</div>' +
+      '<div class="wd-step-pct">' + (i === 0 ? 'Đang bắt đầu' : 'Chưa bắt đầu') + '</div>' +
+      '</div>';
+  }).join('');
+}
+
+function renderHomeTodo(){
+  var el = document.getElementById('home-todo');
+  if(!el) return;
+  var items = [
+    {label:'Hoàn thiện mục tiêu năm học ' + (new Date().getFullYear()), status:'todo', statusLabel:'Cần làm'},
+    {label:'Phân bổ chủ đề 35 tuần', status:'due', statusLabel:'Sắp đến hạn'},
+    {label:'Bổ sung minh chứng quan sát tuần trước', status:'overdue', statusLabel:'Quá hạn'},
+    {label:'Duyệt kế hoạch tháng của giáo viên', status:'todo', statusLabel:'Cần làm'},
+  ];
+  el.innerHTML = items.map(function(it){
+    return '<div class="wd-todo-item"><span class="wd-todo-status ' + it.status + '">' + it.statusLabel + '</span><span>' + escHtml(it.label) + '</span></div>';
+  }).join('');
+}
+
+function renderHomeActivity(){
+  var el = document.getElementById('home-activity');
+  if(!el) return;
+  apiGet('/api/audit-log?limit=6').then(function(list){
+    if(!list || !list.length){ el.innerHTML = '<div class="note info"><i class="ti ti-info-circle"></i><div>Chưa có hoạt động nào được ghi nhận.</div></div>'; return; }
+    el.innerHTML = list.map(function(a){
+      return '<div class="wd-activity-item"><span class="wd-activity-dot"></span><div>' +
+        '<div>' + escHtml(auditActionLabel(a)) + '</div>' +
+        '<div class="wd-activity-meta">' + escHtml(a.user_name || '') + ' · ' + escHtml(formatAuditTime(a.created_at)) + '</div>' +
+        '</div></div>';
+    }).join('');
+  }).catch(function(){
+    el.innerHTML = '<div class="note warn"><i class="ti ti-alert-circle"></i><div>Không tải được hoạt động gần đây.</div></div>';
+  });
+}
+
+function renderHomeDashboard(){
+  renderHomeWelcome();
+  renderHomeOverviewCards();
+  renderHomeStepper();
+  renderHomeTodo();
+  renderHomeActivity();
+}
+
+// ─── TOPBAR: tài khoản, thông báo (GĐ2) ────────────────────────────────────
+function updateTopbarUser(){
+  var nameEl = document.getElementById('tb-user-name');
+  var avEl = document.getElementById('tb-user-avatar');
+  if(!nameEl || !avEl || !CURRENT_ACCOUNT) return;
+  var name = CURRENT_ACCOUNT.full_name || CURRENT_ACCOUNT.email || 'Người dùng';
+  nameEl.textContent = name;
+  nameEl.title = (CURRENT_ACCOUNT.role === 'admin' ? 'Quản trị · ' : 'Giáo viên · ') + (CURRENT_ACCOUNT.school_name || '');
+  var initials = name.trim().split(/\s+/).map(function(w){ return w.charAt(0); }).slice(-2).join('').toUpperCase();
+  avEl.textContent = initials || '?';
+}
+
+function auditActionLabel(a){
+  var actionMap = {create:'Tạo mới', update:'Cập nhật', delete:'Xoá', approve:'Duyệt'};
+  var entityMap = {school:'trường', teacher:'giáo viên', child:'trẻ', observation:'quan sát', assessment:'đánh giá', portfolio:'portfolio', annual_plan:'kế hoạch năm', plan_35_week:'phiên chế 35 tuần'};
+  var act = actionMap[a.action] || a.action || '';
+  var ent = entityMap[a.entity_type] || a.entity_type || '';
+  return act + (ent ? ' ' + ent : '') + (a.detail ? ': ' + a.detail : '');
+}
+function formatAuditTime(iso){
+  if(!iso) return '';
+  try{
+    var d = new Date(iso.endsWith('Z') || iso.includes('+') ? iso : iso + 'Z');
+    return d.toLocaleString('vi-VN', {day:'2-digit', month:'2-digit', hour:'2-digit', minute:'2-digit'});
+  }catch(e){ return iso; }
+}
+
+function toggleNotifications(){
+  var panel = document.getElementById('tb-notify-panel');
+  if(!panel) return;
+  if(panel.style.display === 'block'){ panel.style.display = 'none'; return; }
+  panel.style.display = 'block';
+  panel.innerHTML = '<div class="tnp-title">Hoạt động gần đây</div><div class="tnp-empty">Đang tải...</div>';
+  apiGet('/api/audit-log?limit=10').then(function(list){
+    var dot = document.getElementById('tb-notify-dot');
+    if(dot) dot.style.display = 'none';
+    try { localStorage.setItem('gdmn_notify_seen', String(Date.now())); } catch(e){}
+    if(!list || !list.length){
+      panel.innerHTML = '<div class="tnp-title">Hoạt động gần đây</div><div class="tnp-empty">Chưa có hoạt động nào được ghi nhận.</div>';
+      return;
+    }
+    panel.innerHTML = '<div class="tnp-title">Hoạt động gần đây</div>' + list.map(function(a){
+      return '<div class="tnp-item"><div class="tnp-action">' + escHtml(auditActionLabel(a)) + '</div><div class="tnp-meta">' + escHtml(a.user_name || '') + ' · ' + escHtml(formatAuditTime(a.created_at)) + '</div></div>';
+    }).join('');
+  }).catch(function(){
+    panel.innerHTML = '<div class="tnp-title">Hoạt động gần đây</div><div class="tnp-empty">Không tải được hoạt động gần đây.</div>';
+  });
+}
+document.addEventListener('click', function(ev){
+  var panel = document.getElementById('tb-notify-panel');
+  var btn = document.getElementById('btn-notify');
+  if(!panel || panel.style.display !== 'block') return;
+  if(panel.contains(ev.target) || (btn && btn.contains(ev.target))) return;
+  panel.style.display = 'none';
+});
+function checkNotificationsDot(){
+  apiGet('/api/audit-log?limit=1').then(function(list){
+    var dot = document.getElementById('tb-notify-dot');
+    if(!dot || !list || !list.length) return;
+    var lastSeen = 0;
+    try { lastSeen = Number(localStorage.getItem('gdmn_notify_seen') || 0); } catch(e){}
+    var latest = new Date(list[0].created_at.endsWith('Z') ? list[0].created_at : list[0].created_at + 'Z').getTime();
+    dot.style.display = latest > lastSeen ? 'block' : 'none';
+  }).catch(function(){});
+}
+
+// ─── STATUS BAR (mới, GĐ2) ─────────────────────────────────────────────────
+function initStatusBar(){
+  var offlineNote = document.getElementById('sb-offline-note');
+  if(offlineNote){
+    var isDesktop = location.hostname === '127.0.0.1' || location.hostname === 'localhost' || location.protocol === 'file:';
+    offlineNote.style.display = isDesktop ? 'flex' : 'none';
+  }
+  var versionEl = document.getElementById('sb-app-version');
+  if(versionEl) versionEl.textContent = 'v' + APP_VERSION;
+  checkBackendStatusForStatusBar();
+  setInterval(checkBackendStatusForStatusBar, 30000);
+}
+function checkBackendStatusForStatusBar(){
+  var el = document.getElementById('sb-backend-status');
+  if(!el) return;
+  fetch(API_BASE + '/api/health').then(function(r){ return r.json(); }).then(function(){
+    el.innerHTML = '<span class="sb-dot"></span>Backend đang chạy';
+  }).catch(function(){
+    el.innerHTML = '<span class="sb-dot off"></span>Chưa kết nối backend';
+  });
 }
 
 function checkAuthAndBoot(){
