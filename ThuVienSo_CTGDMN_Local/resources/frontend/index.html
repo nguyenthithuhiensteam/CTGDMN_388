@@ -31,10 +31,6 @@
       <span class="tb-author-sep">·</span>
       <span class="tb-qd">Theo QĐ 388/QĐ-BGDĐT</span>
       <span class="tb-author-sep">·</span>
-      <span class="tb-badge tb-badge-steam">STEAM</span>
-      <span class="tb-badge tb-badge-sel">SEL</span>
-      <span class="tb-badge tb-badge-ai">AI</span>
-      <span class="tb-badge tb-badge-cds">Chuyển đổi số</span>
       <span class="tb-badge license-badge demo" id="license-badge">DEMO – chưa kích hoạt</span>
     </div>
   </div>
@@ -66,17 +62,6 @@
     <div class="srch"><i class="ti ti-search"></i><input id="srch-in" placeholder="Tìm kiếm nội dung..." oninput="doSearch(this.value)"></div>
   </div>
     <div id="sidebar-scroll">
-    <div class="nav-sec">Lọc theo độ tuổi</div>
-    <div class="age-row grouped">
-      <span class="age-label">Nhà trẻ</span>
-      <span class="ap nt nt12 on" onclick="setAge('nt12',this)" title="Nhà trẻ 12-24 tháng">12-24T</span>
-      <span class="ap nt nt24" onclick="setAge('nt24',this)" title="Nhà trẻ 24-36 tháng">24-36T</span>
-      <span class="age-label">Mẫu giáo</span>
-      <span class="ap mg3" onclick="setAge('mg3',this)" title="Mẫu giáo Bé 3-4T">3-4T</span>
-      <span class="ap mg4" onclick="setAge('mg4',this)" title="Mẫu giáo Nhỡ 4-5T">4-5T</span>
-      <span class="ap mg5" onclick="setAge('mg5',this)" title="Mẫu giáo Lớn 5-6T">5-6T</span>
-    </div>
-
     <div class="nav-sec">Điều hướng chính</div>
     <div class="nav-a on" data-navid="home" onclick="nav(this,'home')"><i class="ti ti-home"></i>Trang chủ</div>
     <div class="nav-a" data-navid="curriculum" onclick="nav(this,'ct')"><i class="ti ti-books"></i>Chương trình GDMN</div>
@@ -124,48 +109,6 @@
   <!-- "Hoạt động gần đây" không còn hiện thành khối cố định trên trang chủ —
        thay bằng thông báo popup nhỏ (toast) khi có hoạt động mới + chuông
        thông báo trên topbar. Lịch sử đầy đủ vẫn xem được qua chuông đó. -->
-
-  <!-- Giới thiệu chương trình (nội dung trang chủ trước GĐ2, giữ nguyên bên dưới bàn làm việc) -->
-  <div class="hero">
-    <div class="hero-content">
-      <h1>Chương trình Giáo dục Mầm non Thí điểm 2026</h1>
-      <p>Tiếp cận Năng lực · Phẩm chất · STEAM · SEL · Đánh giá vì sự tiến bộ<br>
-      QĐ 388/QĐ-BGDĐT ngày 12/02/2026 · Áp dụng toàn quốc · NH 2026–2027</p>
-      <div class="hero-badges">
-        <span class="hero-badge hero-badge-blue">4 Độ tuổi</span>
-        <span class="hero-badge hero-badge-green">5 Năng lực</span>
-        <span class="hero-badge hero-badge-orange">5 Lĩnh vực PT</span>
-        <span class="hero-badge hero-badge-yellow">4 Phẩm chất</span>
-        <span class="hero-badge hero-badge-blue">10 Hồ sơ Word/Excel</span>
-        <span class="hero-badge hero-badge-green">AI Tạo giáo án</span>
-      </div>
-      <div class="hero-stats">
-        <div class="hero-stat"><span class="hero-stat-n">35</span><span class="hero-stat-l">Tuần/năm</span></div>
-        <div class="hero-stat"><span class="hero-stat-n">9–10</span><span class="hero-stat-l">Chủ đề/tuổi</span></div>
-        <div class="hero-stat"><span class="hero-stat-n">14+</span><span class="hero-stat-l">HĐ STEAM/SEL</span></div>
-        <div class="hero-stat"><span class="hero-stat-n">5</span><span class="hero-stat-l">Bài học mẫu</span></div>
-      </div>
-    </div>
-  </div>
-  <div class="note" style="background:var(--brand-blue-lt);color:var(--brand-blue);border-left:3px solid var(--brand-blue)"><i class="ti ti-sparkles"></i><div><strong>Sẵn sàng sử dụng:</strong> Đủ 4 độ tuổi · 10 file hồ sơ Word/Excel · Rubric I/H/V · Ngân hàng 14+ HĐ STEAM/SEL · Tracker theo dõi trẻ · Tạo giáo án AI. Bấm <em>Tải hồ sơ</em> để tải về máy.</div></div>
-  <div class="sg">
-    <div class="sc"><div class="si" style="background:var(--brand-blue-lt);color:var(--brand-blue)">👶</div><div class="sn" style="color:var(--brand-blue)">4</div><div class="sl">Độ tuổi</div></div>
-    <div class="sc"><div class="si" style="background:var(--brand-green-lt)">📅</div><div class="sn" style="color:var(--brand-green)">35</div><div class="sl">Tuần / năm</div></div>
-    <div class="sc"><div class="si" style="background:var(--brand-yellow-lt)">📚</div><div class="sn" style="color:var(--brand-yellow)">9–10</div><div class="sl">Chủ đề / tuổi</div></div>
-    <div class="sc"><div class="si" style="background:var(--brand-orange-lt)">⭐</div><div class="sn" style="color:var(--brand-orange)">4+5</div><div class="sl">PC + Năng lực</div></div>
-    <div class="sc"><div class="si" style="background:var(--brand-blue-lt)">📄</div><div class="sn" style="color:var(--brand-blue)">10</div><div class="sl">File hồ sơ</div></div>
-    <div class="sc"><div class="si" style="background:var(--brand-green-lt)">🔬</div><div class="sn" style="color:var(--brand-green)">14+</div><div class="sl">HĐ STEAM/SEL</div></div>
-  </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px">
-    <div class="card">
-      <div class="card-hdr"><div class="card-ttl"><i class="ti ti-list"></i>Bộ hồ sơ đã hoàn thành</div></div>
-      <div class="card-body" id="home-files"></div>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-ttl"><i class="ti ti-bulb" style="color:var(--brand-yellow)"></i>6 Triết lý cốt lõi CT mới</div></div>
-      <div class="card-body" id="home-phil"></div>
-    </div>
-  </div>
 </div>
 
 <!-- ──────────────── CT ──────────────── -->
@@ -753,7 +696,7 @@
   <span class="sb-spacer"></span>
   <span class="sb-item sb-footer">NGUYỄN THU HIỀN – HỌC BẰNG CHIA SẺ</span>
   <span class="sb-sep">|</span>
-  <span class="sb-item" id="sb-app-version">v1.1.2</span>
+  <span class="sb-item" id="sb-app-version">v1.1.3</span>
 </div>
 
 <!-- AUTH OVERLAY (đăng nhập / đăng ký trường) -->
