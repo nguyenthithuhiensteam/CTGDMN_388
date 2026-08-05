@@ -346,10 +346,18 @@
 <!-- ──────────────── TRỢ LÝ TẠO GIÁO ÁN ──────────────── -->
 <div class="page" id="p-gaiaoan">
   <div class="pg-h">
-    <div class="pg-title">🤖 Trợ lý Tạo Giáo án AI</div>
-    <div class="pg-sub">Soạn giáo án theo CT thí điểm 2026 (QĐ 388) – 4 giai đoạn – có YCCĐ + câu hỏi gợi mở</div>
+    <div class="pg-title">🤖 Trợ lý AI</div>
+    <div class="pg-sub">Hỗ trợ soạn giáo án, gợi ý hoạt động, tư vấn tình huống và viết nhận xét trẻ theo CT thí điểm 2026 (QĐ 388)</div>
   </div>
 
+  <div class="tabs" id="ai-tabs">
+    <button class="tab on" onclick="setAiTab(this,'giaoan')">📝 Soạn giáo án</button>
+    <button class="tab" onclick="setAiTab(this,'hoatdong')">🧩 Gợi ý hoạt động</button>
+    <button class="tab" onclick="setAiTab(this,'tinhhuong')">💬 Tư vấn tình huống</button>
+    <button class="tab" onclick="setAiTab(this,'nhanxet')">📋 Nhận xét tiến bộ trẻ</button>
+  </div>
+
+  <div id="ai-tab-giaoan">
   <!-- FORM -->
   <div class="card" id="ga-form-card">
     <div class="card-hdr">
@@ -502,6 +510,119 @@
       <div class="card-body" id="ga-history-list"></div>
     </div>
   </div>
+  </div><!-- end ai-tab-giaoan -->
+
+  <!-- GỢI Ý HOẠT ĐỘNG -->
+  <div id="ai-tab-hoatdong" style="display:none">
+    <div class="card">
+      <div class="card-hdr"><div class="card-ttl"><i class="ti ti-bulb"></i>Gợi ý hoạt động học qua chơi</div></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+          <div>
+            <div class="ga-lbl">Độ tuổi</div>
+            <select id="ai-hd-age" class="ga-sel">
+              <option value="Nhà trẻ 24-36 tháng">Nhà trẻ 24-36 tháng</option>
+              <option value="Mẫu giáo Bé 3-4 tuổi">MG Bé 3-4 tuổi</option>
+              <option value="Mẫu giáo Nhỡ 4-5 tuổi" selected>MG Nhỡ 4-5 tuổi</option>
+              <option value="Mẫu giáo Lớn 5-6 tuổi">MG Lớn 5-6 tuổi</option>
+            </select>
+          </div>
+          <div>
+            <div class="ga-lbl">Số lượng gợi ý</div>
+            <select id="ai-hd-count" class="ga-sel">
+              <option value="3">3 hoạt động</option>
+              <option value="5" selected>5 hoạt động</option>
+              <option value="8">8 hoạt động</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom:14px">
+          <div class="ga-lbl">Lĩnh vực / chủ đề quan tâm</div>
+          <input id="ai-hd-linhvuc" class="ga-inp" placeholder="VD: Khám phá khoa học, chủ đề Động vật" />
+        </div>
+        <div style="margin-bottom:14px">
+          <div class="ga-lbl">Bối cảnh hiện tại (tuỳ chọn)</div>
+          <textarea id="ai-hd-boicanh" class="ga-inp" rows="2" placeholder="VD: Trời mưa không ra sân được, lớp có 2 trẻ hoà nhập, chỉ có vật liệu tái chế..."></textarea>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button id="ai-hd-btn" onclick="generateActivitySuggestions()" class="ga-main-btn"><i class="ti ti-wand" style="font-size:16px"></i> Gợi ý hoạt động</button>
+          <div id="ai-hd-loading" style="display:none;align-items:center;gap:7px;color:var(--pu);font-size:12.5px;font-weight:600"><div class="ga-spinner"></div> Đang gợi ý...</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" id="ai-hd-result" style="display:none">
+      <div class="card-hdr"><div class="card-ttl"><i class="ti ti-list-check"></i>Gợi ý hoạt động</div></div>
+      <div class="card-body" id="ai-hd-body" style="font-size:13px;line-height:1.7"></div>
+    </div>
+  </div>
+
+  <!-- TƯ VẤN TÌNH HUỐNG -->
+  <div id="ai-tab-tinhhuong" style="display:none">
+    <div class="card">
+      <div class="card-hdr"><div class="card-ttl"><i class="ti ti-message-circle"></i>Tư vấn tình huống lớp học</div></div>
+      <div class="card-body">
+        <div style="margin-bottom:14px">
+          <div class="ga-lbl">Độ tuổi</div>
+          <select id="ai-th-age" class="ga-sel">
+            <option value="Nhà trẻ 24-36 tháng">Nhà trẻ 24-36 tháng</option>
+            <option value="Mẫu giáo Bé 3-4 tuổi">MG Bé 3-4 tuổi</option>
+            <option value="Mẫu giáo Nhỡ 4-5 tuổi" selected>MG Nhỡ 4-5 tuổi</option>
+            <option value="Mẫu giáo Lớn 5-6 tuổi">MG Lớn 5-6 tuổi</option>
+          </select>
+        </div>
+        <div style="margin-bottom:14px">
+          <div class="ga-lbl">Mô tả tình huống</div>
+          <textarea id="ai-th-mota" class="ga-inp" rows="4" placeholder="VD: Trẻ hay tranh giành đồ chơi và đánh bạn khi không được như ý, đã nhắc nhở nhiều lần nhưng chưa cải thiện..."></textarea>
+          <div class="note info" style="margin-top:8px"><i class="ti ti-shield-lock"></i><div>Không cần ghi tên trẻ trong mô tả — chỉ cần mô tả hành vi/bối cảnh để giữ kín thông tin cá nhân của trẻ.</div></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button id="ai-th-btn" onclick="generateSituationAdvice()" class="ga-main-btn"><i class="ti ti-wand" style="font-size:16px"></i> Xin tư vấn</button>
+          <div id="ai-th-loading" style="display:none;align-items:center;gap:7px;color:var(--pu);font-size:12.5px;font-weight:600"><div class="ga-spinner"></div> Đang phân tích...</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" id="ai-th-result" style="display:none">
+      <div class="card-hdr"><div class="card-ttl"><i class="ti ti-heart-handshake"></i>Gợi ý xử lý</div></div>
+      <div class="card-body" id="ai-th-body" style="font-size:13px;line-height:1.7"></div>
+    </div>
+  </div>
+
+  <!-- NHẬN XÉT TIẾN BỘ TRẺ -->
+  <div id="ai-tab-nhanxet" style="display:none">
+    <div class="card">
+      <div class="card-hdr"><div class="card-ttl"><i class="ti ti-notes"></i>Viết nhận xét tiến bộ của trẻ</div></div>
+      <div class="card-body">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+          <div>
+            <div class="ga-lbl">Tên trẻ (tuỳ chọn — chỉ hiện ở tiêu đề, không gửi cho AI)</div>
+            <input id="ai-nx-ten" class="ga-inp" placeholder="VD: Bé An" />
+          </div>
+          <div>
+            <div class="ga-lbl">Độ tuổi</div>
+            <select id="ai-nx-age" class="ga-sel">
+              <option value="Nhà trẻ 24-36 tháng">Nhà trẻ 24-36 tháng</option>
+              <option value="Mẫu giáo Bé 3-4 tuổi">MG Bé 3-4 tuổi</option>
+              <option value="Mẫu giáo Nhỡ 4-5 tuổi" selected>MG Nhỡ 4-5 tuổi</option>
+              <option value="Mẫu giáo Lớn 5-6 tuổi">MG Lớn 5-6 tuổi</option>
+            </select>
+          </div>
+        </div>
+        <div style="margin-bottom:14px">
+          <div class="ga-lbl">Ghi chú/quan sát thô</div>
+          <textarea id="ai-nx-ghichu" class="ga-inp" rows="4" placeholder="VD: Tuần này tự xúc ăn không cần nhắc, chủ động rủ bạn chơi xếp hình, còn nhút nhát khi phát biểu trước lớp..."></textarea>
+          <div class="note info" style="margin-top:8px"><i class="ti ti-shield-lock"></i><div>Chỉ mô tả biểu hiện quan sát được, không cần ghi tên trẻ trong ô này — thông tin gửi tới AI được giữ ẩn danh.</div></div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center">
+          <button id="ai-nx-btn" onclick="generateChildComment()" class="ga-main-btn"><i class="ti ti-wand" style="font-size:16px"></i> Viết nhận xét</button>
+          <div id="ai-nx-loading" style="display:none;align-items:center;gap:7px;color:var(--pu);font-size:12.5px;font-weight:600"><div class="ga-spinner"></div> Đang viết...</div>
+        </div>
+      </div>
+    </div>
+    <div class="card" id="ai-nx-result" style="display:none">
+      <div class="card-hdr"><div class="card-ttl" id="ai-nx-res-title"><i class="ti ti-file-text"></i>Nhận xét</div></div>
+      <div class="card-body" id="ai-nx-body" style="font-size:13px;line-height:1.7"></div>
+    </div>
+  </div>
 </div>
 
 
@@ -636,7 +757,7 @@
   <span class="sb-spacer"></span>
   <span class="sb-item sb-footer">NGUYỄN THU HIỀN – HỌC BẰNG CHIA SẺ</span>
   <span class="sb-sep">|</span>
-  <span class="sb-item" id="sb-app-version">v1.0.8</span>
+  <span class="sb-item" id="sb-app-version">v1.0.9</span>
 </div>
 
 <!-- AUTH OVERLAY (đăng nhập / đăng ký trường) -->

@@ -1681,6 +1681,114 @@ Dùng Markdown rõ ràng với các heading ##, ###. Dùng bảng cho phần so 
   return { age, mon, chude, ten, tg, nls, tks, note, prompt };
 }
 
+// ─── TRỢ LÝ AI: các chức năng mở rộng (gợi ý hoạt động / tư vấn tình huống /
+// nhận xét trẻ) — dùng chung endpoint /api/ai/messages đã có sẵn cho giáo án.
+function setAiTab(el, tab){
+  document.querySelectorAll('#ai-tabs .tab').forEach(function(t){ t.classList.remove('on'); });
+  if(el) el.classList.add('on');
+  ['giaoan','hoatdong','tinhhuong','nhanxet'].forEach(function(t){
+    var sec = document.getElementById('ai-tab-' + t);
+    if(sec) sec.style.display = (t === tab) ? 'block' : 'none';
+  });
+}
+
+async function callAiAssistant(system, userText, maxTokens){
+  var resp = await fetch(API_BASE + '/api/ai/messages', {
+    method: 'POST',
+    headers: Object.assign({'Content-Type': 'application/json'}, authHeaders()),
+    body: JSON.stringify({
+      model: 'claude-sonnet-5',
+      max_tokens: maxTokens || 1500,
+      system: system,
+      messages: [{role: 'user', content: userText}]
+    })
+  });
+  var data = await resp.json();
+  if(!resp.ok){
+    if(resp.status === 412){ openAiSettings(); throw new Error('Chưa cấu hình API key AI. Vui lòng nhập rồi thử lại.'); }
+    throw new Error(data.detail || (data.error && data.error.message) || 'Lỗi API ' + resp.status);
+  }
+  return data.content.map(function(b){ return b.type === 'text' ? b.text : ''; }).join('');
+}
+
+async function generateActivitySuggestions(){
+  var age = document.getElementById('ai-hd-age').value;
+  var count = document.getElementById('ai-hd-count').value;
+  var linhvuc = document.getElementById('ai-hd-linhvuc').value.trim();
+  var boicanh = document.getElementById('ai-hd-boicanh').value.trim();
+  if(!linhvuc){ toast('Vui lòng nhập lĩnh vực/chủ đề quan tâm'); return; }
+  var btn = document.getElementById('ai-hd-btn'), loading = document.getElementById('ai-hd-loading');
+  var resultCard = document.getElementById('ai-hd-result'), body = document.getElementById('ai-hd-body');
+  btn.disabled = true; loading.style.display = 'flex'; resultCard.style.display = 'none';
+  try {
+    var userText = 'Độ tuổi: ' + age + '\nLĩnh vực/chủ đề quan tâm: ' + linhvuc +
+      (boicanh ? '\nBối cảnh hiện tại: ' + boicanh : '') + '\nSố lượng gợi ý: ' + count;
+    var text = await callAiAssistant(
+      'Bạn là chuyên gia giáo dục mầm non Việt Nam theo Chương trình thí điểm 2026 (QĐ 388). Gợi ý các hoạt động học qua chơi, ưu tiên trải nghiệm thực tế, không rập khuôn giáo án cứng nhắc, phù hợp độ tuổi. Mỗi hoạt động nêu rõ: tên hoạt động, năng lực/mục tiêu hướng tới, cách tổ chức ngắn gọn, vật liệu cần (ưu tiên vật liệu tái chế/sẵn có), 1-2 câu hỏi gợi mở mẫu. Trả lời bằng tiếng Việt, dùng Markdown với heading rõ ràng cho từng hoạt động.',
+      userText, 2000
+    );
+    body.innerHTML = mdToHtml(text);
+    resultCard.style.display = 'block';
+    resultCard.scrollIntoView({behavior: 'smooth', block: 'start'});
+    toast('✨ Đã có gợi ý hoạt động!');
+  } catch(err){
+    toast('❌ ' + err.message);
+  } finally {
+    btn.disabled = false; loading.style.display = 'none';
+  }
+}
+
+async function generateSituationAdvice(){
+  var age = document.getElementById('ai-th-age').value;
+  var mota = document.getElementById('ai-th-mota').value.trim();
+  if(!mota){ toast('Vui lòng mô tả tình huống'); return; }
+  var btn = document.getElementById('ai-th-btn'), loading = document.getElementById('ai-th-loading');
+  var resultCard = document.getElementById('ai-th-result'), body = document.getElementById('ai-th-body');
+  btn.disabled = true; loading.style.display = 'flex'; resultCard.style.display = 'none';
+  try {
+    var userText = 'Độ tuổi: ' + age + '\nTình huống: ' + mota;
+    var text = await callAiAssistant(
+      'Bạn là chuyên gia tư vấn giáo dục mầm non, hỗ trợ giáo viên xử lý tình huống lớp học theo tinh thần Chương trình GDMN thí điểm 2026: lấy trẻ làm trung tâm, không trừng phạt/so sánh, đồng hành và thấu hiểu cảm xúc trẻ. Với tình huống được mô tả, trả lời gồm: (1) cách hiểu có thể về nguyên nhân, (2) 2-3 hướng xử lý cụ thể ngay lúc đó, (3) cách hỗ trợ/phòng ngừa lâu dài, (4) gợi ý trao đổi với phụ huynh nếu cần. Không đưa chẩn đoán y khoa/tâm lý, chỉ gợi ý sư phạm. Trả lời bằng tiếng Việt, giọng ấm áp, thực tế, dùng Markdown.',
+      userText, 1800
+    );
+    body.innerHTML = mdToHtml(text);
+    resultCard.style.display = 'block';
+    resultCard.scrollIntoView({behavior: 'smooth', block: 'start'});
+    toast('✨ Đã có gợi ý xử lý!');
+  } catch(err){
+    toast('❌ ' + err.message);
+  } finally {
+    btn.disabled = false; loading.style.display = 'none';
+  }
+}
+
+async function generateChildComment(){
+  var name = document.getElementById('ai-nx-ten').value.trim();
+  var age = document.getElementById('ai-nx-age').value;
+  var ghichu = document.getElementById('ai-nx-ghichu').value.trim();
+  if(!ghichu){ toast('Vui lòng nhập ghi chú/quan sát'); return; }
+  var btn = document.getElementById('ai-nx-btn'), loading = document.getElementById('ai-nx-loading');
+  var resultCard = document.getElementById('ai-nx-result'), body = document.getElementById('ai-nx-body');
+  btn.disabled = true; loading.style.display = 'flex'; resultCard.style.display = 'none';
+  try {
+    // Ẩn danh: KHÔNG gửi tên trẻ tới AI, chỉ dùng ghi chú quan sát + độ tuổi.
+    var userText = 'Độ tuổi: ' + age + '\nGhi chú/quan sát: ' + ghichu;
+    var text = await callAiAssistant(
+      'Bạn hỗ trợ giáo viên mầm non viết nhận xét tiến bộ của trẻ theo tinh thần Chương trình GDMN thí điểm 2026: đánh giá VÌ SỰ TIẾN BỘ của từng trẻ, không xếp loại, không so sánh với trẻ khác hay chuẩn chung. Dựa trên ghi chú quan sát thô, viết lại thành 1 đoạn nhận xét ngắn gọn (100-150 từ), tích cực, cụ thể, có minh chứng, kèm 1 gợi ý hỗ trợ tiếp theo. Giọng văn phù hợp để gửi cho phụ huynh. Không tự thêm tên trẻ (giáo viên sẽ tự điền). Trả lời bằng tiếng Việt.',
+      userText, 700
+    );
+    document.getElementById('ai-nx-res-title').innerHTML = '<i class="ti ti-file-text"></i>Nhận xét' + (name ? ' – ' + escHtml(name) : '');
+    body.innerHTML = mdToHtml(text);
+    resultCard.style.display = 'block';
+    resultCard.scrollIntoView({behavior: 'smooth', block: 'start'});
+    toast('✨ Đã viết xong nhận xét!');
+  } catch(err){
+    toast('❌ ' + err.message);
+  } finally {
+    btn.disabled = false; loading.style.display = 'none';
+  }
+}
+
 async function generateGiaoAn(){
   var info = buildGiaoAnPrompt();
   if(!info.ten && !document.getElementById('ga-tenbai').value.trim()){
