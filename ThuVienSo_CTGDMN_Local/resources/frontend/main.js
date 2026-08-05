@@ -221,6 +221,7 @@ function nav(el,id){
   if(id==='overview-ct388') renderOverviewHub();
   if(id==='settings') renderSettings();
   if(id==='home') renderHomeDashboard();
+  if(id==='superadmin') loadSuperadminSchools(SUPERADMIN_TAB);
 }
 
 function setAge(a,el){
@@ -2897,11 +2898,73 @@ function doLogout(){
 }
 
 function bootApp(){
+  if(CURRENT_ACCOUNT && CURRENT_ACCOUNT.role === 'superadmin'){
+    bootSuperadminApp();
+    return;
+  }
   loadSchoolData();
   updateTopbarUser();
   initStatusBar();
   checkNotificationsDot();
   renderHomeDashboard();
+}
+
+// ─── QUẢN TRỊ HỆ THỐNG trong app chính (đăng nhập bằng CT388_SUPERADMIN_*) ──
+function bootSuperadminApp(){
+  updateTopbarUser();
+  // Ẩn các phần chỉ dành cho tài khoản trường (lọc độ tuổi, tìm kiếm nội dung
+  // trường, trạng thái lưu, thông báo hoạt động trường...) — quản trị hệ
+  // thống không thuộc trường nào nên các phần này không áp dụng được.
+  ['srch-box','tb-search-in','tb-save-status','btn-notify','tb-notify-panel'].forEach(function(id){
+    var el = document.getElementById(id);
+    if(el) el.style.display = 'none';
+  });
+  var sidebarScroll = document.getElementById('sidebar-scroll');
+  if(sidebarScroll){
+    sidebarScroll.innerHTML =
+      '<div class="nav-sec">Quản trị hệ thống</div>' +
+      '<div class="nav-a on" onclick="nav(this,\'superadmin\')"><i class="ti ti-shield-check"></i>Duyệt trường đăng ký</div>';
+  }
+  document.querySelectorAll('.page').forEach(function(p){ p.classList.remove('on'); });
+  var pg = document.getElementById('p-superadmin');
+  if(pg) pg.classList.add('on');
+  loadSuperadminSchools('pending');
+}
+
+var SUPERADMIN_TAB = 'pending';
+function setSuperadminTab(el, status){
+  SUPERADMIN_TAB = status;
+  document.querySelectorAll('#superadmin-tabs .tab').forEach(function(t){ t.classList.remove('on'); });
+  if(el) el.classList.add('on');
+  loadSuperadminSchools(status);
+}
+
+function loadSuperadminSchools(status){
+  var wrap = document.getElementById('superadmin-schools-wrap');
+  if(!wrap) return;
+  wrap.textContent = 'Đang tải...';
+  apiGet('/api/superadmin/schools?status=' + status).then(function(list){
+    if(!list || !list.length){ wrap.innerHTML = '<div class="note info"><i class="ti ti-info-circle"></i><div>Không có trường nào ở trạng thái này.</div></div>'; return; }
+    wrap.innerHTML = '<table class="overview-table"><thead><tr><th>Trường</th><th>Tỉnh/TP</th><th>Email quản trị</th><th>Số TK</th><th>Ngày đăng ký</th><th>Trạng thái</th><th></th></tr></thead><tbody>' +
+      list.map(function(s){
+        var badgeClass = s.status === 'approved' ? 'ok' : (s.status === 'rejected' ? 'warn' : 'info');
+        var actions = s.status === 'pending'
+          ? '<button class="ga-sec-btn" onclick="superadminAct(' + s.id + ',\'approve\')">Duyệt</button> <button class="ga-sec-btn" style="background:var(--gdmn-red-lt,#FDEAEA);color:var(--gdmn-red,#E84545)" onclick="superadminAct(' + s.id + ',\'reject\')">Từ chối</button>'
+          : (s.status === 'rejected'
+            ? '<button class="ga-sec-btn" onclick="superadminAct(' + s.id + ',\'approve\')">Duyệt lại</button>'
+            : '<button class="ga-sec-btn" style="background:var(--gdmn-red-lt,#FDEAEA);color:var(--gdmn-red,#E84545)" onclick="superadminAct(' + s.id + ',\'reject\')">Thu hồi</button>');
+        return '<tr><td><b>' + escHtml(s.name) + '</b></td><td>' + escHtml(s.city || '') + '</td><td>' + escHtml(s.admin_email || '') + '</td><td>' + s.user_count + '</td><td>' + escHtml((s.created_at || '').slice(0, 16)) + '</td><td><span class="note ' + badgeClass + '" style="display:inline-block;padding:2px 8px;margin:0;font-size:10px">' + escHtml(s.status) + '</span></td><td>' + actions + '</td></tr>';
+      }).join('') + '</tbody></table>';
+  }).catch(function(e){
+    wrap.innerHTML = '<div class="note warn"><i class="ti ti-alert-circle"></i><div>Không tải được danh sách: ' + escHtml(e.message) + '</div></div>';
+  });
+}
+
+function superadminAct(schoolId, action){
+  apiPost('/api/superadmin/schools/' + schoolId + '/' + action, {}).then(function(){
+    toast(action === 'approve' ? '✅ Đã duyệt trường' : '✅ Đã từ chối trường');
+    loadSuperadminSchools(SUPERADMIN_TAB);
+  }).catch(function(e){ toast('❌ ' + e.message); });
 }
 
 // ─── TRANG CHỦ "BÀN LÀM VIỆC" (mới, GĐ2) ────────────────────────────────────

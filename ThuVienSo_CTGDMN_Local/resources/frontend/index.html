@@ -610,6 +610,22 @@
     </div>
   </div>
 </div>
+
+<!-- Quản trị hệ thống: duyệt trường đăng ký (chỉ hiện khi đăng nhập bằng tài khoản superadmin) -->
+<div class="page" id="p-superadmin">
+  <div class="pg-h"><div class="pg-title">Duyệt trường đăng ký</div><div class="pg-sub">Duyệt để trường có thể đăng nhập và sử dụng app. Từ chối sẽ khoá đăng nhập của trường đó (có thể duyệt lại sau).</div></div>
+  <div class="card">
+    <div class="card-body">
+      <div class="tabs" id="superadmin-tabs">
+        <button class="tab on" onclick="setSuperadminTab(this,'pending')">Chờ duyệt</button>
+        <button class="tab" onclick="setSuperadminTab(this,'approved')">Đã duyệt</button>
+        <button class="tab" onclick="setSuperadminTab(this,'rejected')">Từ chối</button>
+        <button class="tab" onclick="setSuperadminTab(this,'all')">Tất cả</button>
+      </div>
+      <div class="overview-table-wrap"><div id="superadmin-schools-wrap">Đang tải...</div></div>
+    </div>
+  </div>
+</div>
 </div><!-- end content -->
 </div><!-- end wrap -->
 
@@ -623,7 +639,7 @@
   <span class="sb-spacer"></span>
   <span class="sb-item sb-footer">NGUYỄN THU HIỀN – HỌC BẰNG CHIA SẺ</span>
   <span class="sb-sep">|</span>
-  <span class="sb-item" id="sb-app-version">v1.0.4</span>
+  <span class="sb-item" id="sb-app-version">v1.0.5</span>
 </div>
 
 <!-- AUTH OVERLAY (đăng nhập / đăng ký trường) -->
