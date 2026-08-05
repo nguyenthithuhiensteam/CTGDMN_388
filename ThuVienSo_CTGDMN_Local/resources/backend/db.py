@@ -245,6 +245,7 @@ schools = Table(
     Column("id", Integer, primary_key=True),
     Column("name", String, nullable=False),
     Column("city", String),
+    Column("status", String, nullable=False, default="approved"),  # 'pending' | 'approved' | 'rejected'
     ts_default_col("created_at"),
     ts_default_col("updated_at"),
 )
@@ -445,6 +446,43 @@ def init_database() -> None:
 
         backup_database()
     metadata.create_all(engine)
+    _add_missing_columns(engine, existing_tables)
+
+
+def _add_missing_columns(engine: Engine, existing_tables: set[str]) -> None:
+    """`metadata.create_all()` only creates tables that don't exist yet — it never
+    adds new columns to a table that already exists (e.g. when a code update adds
+    a column to a table an earlier version already created). Handle that additive
+    case here with plain `ALTER TABLE ... ADD COLUMN`, safe on both SQLite and
+    Postgres. Backs up first, same as the new-table path above, since this
+    changes the schema of a table that may already hold real data."""
+    from sqlalchemy import inspect
+
+    inspector = inspect(engine)
+    pending: list[tuple[str, Column]] = []
+    for table_name, table in metadata.tables.items():
+        if table_name not in existing_tables:
+            continue  # brand new table — create_all() already handled it fully
+        existing_cols = {c["name"] for c in inspector.get_columns(table_name)}
+        for column in table.columns:
+            if column.name not in existing_cols:
+                pending.append((table_name, column))
+    if not pending:
+        return
+
+    from backend.backup import backup_database
+
+    backup_database()
+    with engine.begin() as conn:
+        for table_name, column in pending:
+            type_sql = column.type.compile(dialect=engine.dialect)
+            ddl = f"ALTER TABLE {table_name} ADD COLUMN {column.name} {type_sql}"
+            default = column.default.arg if column.default is not None and not column.default.is_callable else None
+            if not column.nullable and default is not None and isinstance(default, (str, int, float)):
+                literal = f"'{default}'" if isinstance(default, str) else str(default)
+                ddl += f" NOT NULL DEFAULT {literal}"
+            conn.exec_driver_sql(ddl)
+            print(f"[migrate] Đã thêm cột {table_name}.{column.name}")
 
 
 def get_connection() -> Connection:

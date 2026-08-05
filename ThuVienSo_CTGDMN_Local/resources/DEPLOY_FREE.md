@@ -19,7 +19,15 @@ Kết hợp: **Render** (chạy web + API, gói Free) + **Neon** (database Postg
    - `DATABASE_URL` → dán chuỗi kết nối Neon đã copy ở bước 1 (dán y nguyên, không cần sửa gì)
    - `CT388_AUTH_SECRET` → Render đã tự sinh sẵn giá trị ngẫu nhiên, để nguyên không cần đổi
    - `CT388_ANTHROPIC_API_KEY` → dán API key Anthropic của bạn
+   - `CT388_SUPERADMIN_EMAIL` và `CT388_SUPERADMIN_PASSWORD` → tự đặt 1 email + mật khẩu bất kỳ để làm tài khoản quản trị hệ thống của bạn (xem mục "Duyệt trường đăng ký" bên dưới). **Nếu không đặt 2 biến này, ai đăng ký trường mới cũng được vào dùng ngay, không cần duyệt.**
 6. Bấm **Save Changes** — Render sẽ tự build và deploy lại
+
+## Duyệt trường đăng ký (chỉ áp dụng khi đã đặt CT388_SUPERADMIN_EMAIL/PASSWORD)
+Khi đã đặt 2 biến trên, mọi trường đăng ký mới sẽ ở trạng thái "chờ duyệt" và chưa đăng nhập được cho tới khi bạn duyệt.
+1. Mở `https://ct388-app.onrender.com/admin.html` (lưu ý: trang này tách riêng, không có trong menu app)
+2. Đăng nhập bằng đúng email/mật khẩu đã đặt ở `CT388_SUPERADMIN_EMAIL`/`CT388_SUPERADMIN_PASSWORD`
+3. Xem danh sách trường đang chờ ở tab **Chờ duyệt**, bấm **Duyệt** hoặc **Từ chối**
+4. Trường được duyệt sẽ đăng nhập được ngay; bị từ chối thì không đăng nhập được nữa (có thể duyệt lại sau nếu đổi ý)
 
 ## 3. Kiểm tra
 Sau khi deploy xong (vài phút), Render cho 1 link dạng `https://ct388-app.onrender.com`. Mở link đó:

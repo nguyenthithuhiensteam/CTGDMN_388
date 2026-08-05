@@ -59,6 +59,13 @@ body{font-family:'Be Vietnam Pro',sans-serif;background:var(--bg);color:var(--te
 .tbtn:hover{background:rgba(37,99,235,.4);border-color:rgba(37,99,235,.6)}
 .tbtn i{font-size:14px}
 .tbtn.active{background:rgba(37,99,235,.5);border-color:#2563EB;box-shadow:0 0 0 2px rgba(37,99,235,.3)}
+.donate-qr-box{text-align:center}
+.donate-qr-box img{width:200px;height:200px;object-fit:contain;border-radius:var(--gdmn-r-sm,14px);border:1px solid var(--border);margin:12px 0}
+.donate-info{
+  margin:14px auto 0;max-width:260px;background:var(--gdmn-cream,#FBF9F3);border-radius:var(--gdmn-r-sm,14px);
+  padding:14px 16px;text-align:left;font-size:12.5px;line-height:1.9;color:var(--text);border:1px solid var(--border);
+}
+.donate-info b{color:var(--gdmn-navy,#0A1F4E)}
 
 /* ─── TOPBAR: tìm kiếm, trạng thái lưu, thông báo, tài khoản (mới, GĐ2) ── */
 .tb-search-inline{

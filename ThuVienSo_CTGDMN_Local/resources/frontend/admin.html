@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Quản trị hệ thống – CTGDMN</title>
+<link rel="stylesheet" href="styles/variables.css">
+<style>
+  *{box-sizing:border-box}
+  body{font-family:var(--gdmn-font);background:var(--gdmn-cream);margin:0;min-height:100vh;color:#1a2233}
+  .topbar{background:var(--gdmn-navy);color:#fff;padding:14px 22px;font-weight:700;font-size:15px;display:flex;align-items:center;justify-content:space-between}
+  .topbar span{font-weight:400;font-size:12px;opacity:.7}
+  .wrap{max-width:960px;margin:0 auto;padding:28px 20px}
+  .card{background:#fff;border-radius:var(--gdmn-r-lg);box-shadow:var(--gdmn-shadow);padding:24px;margin-bottom:16px}
+  h1{font-size:18px;margin:0 0 4px}
+  p.sub{color:#667;font-size:12.5px;margin:0 0 18px}
+  label{display:block;font-size:12px;font-weight:600;margin:12px 0 5px;color:#445}
+  input{width:100%;padding:10px 12px;border:1px solid #dde3ee;border-radius:10px;font-size:13.5px;font-family:inherit}
+  button{font-family:inherit;cursor:pointer;border:none;border-radius:10px;font-weight:700;font-size:13px;padding:10px 18px;transition:.15s}
+  .btn-primary{background:var(--gdmn-blue);color:#fff;width:100%;margin-top:16px}
+  .btn-primary:hover{opacity:.9}
+  .btn-approve{background:var(--gdmn-green-lt);color:var(--gdmn-green)}
+  .btn-approve:hover{background:var(--gdmn-green);color:#fff}
+  .btn-reject{background:var(--gdmn-red-lt);color:var(--gdmn-red);margin-left:6px}
+  .btn-reject:hover{background:var(--gdmn-red);color:#fff}
+  .err{color:var(--gdmn-red);font-size:12.5px;margin-top:8px;min-height:1em}
+  .tabs{display:flex;gap:6px;margin-bottom:16px}
+  .tab{background:var(--gdmn-blue-lt);color:var(--gdmn-blue);border-radius:20px;padding:7px 16px;font-size:12px}
+  .tab.on{background:var(--gdmn-blue);color:#fff}
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:9px 8px;border-bottom:1px solid #eef1f6}
+  th{color:#778;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.3px}
+  .badge{font-size:9.5px;font-weight:700;padding:2px 8px;border-radius:10px}
+  .badge.pending{background:var(--gdmn-yellow-lt);color:#9A7B0A}
+  .badge.approved{background:var(--gdmn-green-lt);color:var(--gdmn-green)}
+  .badge.rejected{background:var(--gdmn-red-lt);color:var(--gdmn-red)}
+  .empty{text-align:center;color:#889;padding:30px 0;font-size:13px}
+  #login-view{max-width:380px;margin:60px auto}
+  .hide{display:none}
+  .logout{background:transparent;color:#fff;border:1px solid rgba(255,255,255,.3);padding:6px 12px;font-size:11.5px}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <span style="font-size:14px;font-weight:700;opacity:1">Quản trị hệ thống CTGDMN</span>
+  <button class="logout hide" id="btn-logout" onclick="logout()">Đăng xuất</button>
+</div>
+
+<div class="wrap">
+
+  <div id="login-view">
+    <div class="card">
+      <h1>Đăng nhập quản trị hệ thống</h1>
+      <p class="sub">Trang này dành riêng để duyệt/từ chối yêu cầu đăng ký trường mới. Không dùng chung với tài khoản trường.</p>
+      <label>Email quản trị hệ thống</label>
+      <input id="login-email" type="email" placeholder="email@..." onkeydown="if(event.key==='Enter') doLogin()">
+      <label>Mật khẩu</label>
+      <input id="login-password" type="password" placeholder="Mật khẩu" onkeydown="if(event.key==='Enter') doLogin()">
+      <button class="btn-primary" onclick="doLogin()">Đăng nhập</button>
+      <div class="err" id="login-err"></div>
+    </div>
+  </div>
+
+  <div id="dashboard-view" class="hide">
+    <div class="card">
+      <h1>Danh sách trường đăng ký</h1>
+      <p class="sub">Duyệt để trường có thể đăng nhập và sử dụng app. Từ chối sẽ khoá đăng nhập của trường đó (có thể duyệt lại sau).</p>
+      <div class="tabs" id="tabs"></div>
+      <div id="table-wrap">Đang tải...</div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+// admin.html chỉ có ý nghĩa khi được chính backend phục vụ (StaticFiles) —
+// không như index.html (có thể mở qua file:// trong bản desktop) — nên luôn
+// gọi API cùng origin, không cần đoán cổng.
+var API_BASE = '';
+var TOKEN_KEY = 'gdmn_superadmin_token';
+var CUR_STATUS = 'pending';
+
+function getToken(){ try{ return localStorage.getItem(TOKEN_KEY) || ''; }catch(e){ return ''; } }
+function setToken(t){ try{ localStorage.setItem(TOKEN_KEY, t); }catch(e){} }
+function clearToken(){ try{ localStorage.removeItem(TOKEN_KEY); }catch(e){} }
+function authHeaders(){ var t=getToken(); return t ? {'Authorization':'Bearer '+t} : {}; }
+
+function escHtml(s){
+  return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+    return ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c];
+  });
+}
+
+function doLogin(){
+  var email = document.getElementById('login-email').value.trim();
+  var password = document.getElementById('login-password').value;
+  var errEl = document.getElementById('login-err');
+  errEl.textContent = '';
+  if(!email || !password){ errEl.textContent = 'Vui lòng nhập email và mật khẩu'; return; }
+  fetch(API_BASE+'/api/auth/login', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({email:email, password:password})
+  }).then(function(r){ return r.json().then(function(d){ return {ok:r.ok, data:d}; }); })
+    .then(function(res){
+      if(!res.ok) throw new Error(res.data.detail || 'Đăng nhập thất bại');
+      if(res.data.role !== 'superadmin') throw new Error('Tài khoản này không phải quản trị hệ thống.');
+      setToken(res.data.token);
+      showDashboard();
+    })
+    .catch(function(e){ errEl.textContent = e.message; });
+}
+
+function logout(){
+  clearToken();
+  document.getElementById('login-view').classList.remove('hide');
+  document.getElementById('dashboard-view').classList.add('hide');
+  document.getElementById('btn-logout').classList.add('hide');
+}
+
+function showDashboard(){
+  document.getElementById('login-view').classList.add('hide');
+  document.getElementById('dashboard-view').classList.remove('hide');
+  document.getElementById('btn-logout').classList.remove('hide');
+  renderTabs();
+  loadSchools();
+}
+
+function renderTabs(){
+  var tabs = [['pending','Chờ duyệt'],['approved','Đã duyệt'],['rejected','Từ chối'],['all','Tất cả']];
+  document.getElementById('tabs').innerHTML = tabs.map(function(t){
+    return '<span class="tab'+(CUR_STATUS===t[0]?' on':'')+'" onclick="setStatus(\''+t[0]+'\')">'+t[1]+'</span>';
+  }).join('');
+}
+function setStatus(s){ CUR_STATUS = s; renderTabs(); loadSchools(); }
+
+function loadSchools(){
+  var el = document.getElementById('table-wrap');
+  el.innerHTML = 'Đang tải...';
+  fetch(API_BASE+'/api/superadmin/schools?status='+CUR_STATUS, {headers: authHeaders()})
+    .then(function(r){
+      if(r.status === 401 || r.status === 403){ logout(); throw new Error('Phiên đăng nhập hết hạn.'); }
+      return r.json();
+    })
+    .then(function(list){
+      if(!list || !list.length){ el.innerHTML = '<div class="empty">Không có trường nào ở trạng thái này.</div>'; return; }
+      el.innerHTML = '<table><thead><tr><th>Trường</th><th>Tỉnh/TP</th><th>Email quản trị</th><th>Số TK</th><th>Ngày đăng ký</th><th>Trạng thái</th><th></th></tr></thead><tbody>' +
+        list.map(function(s){
+          var actions = s.status === 'pending'
+            ? '<button class="btn-approve" onclick="act('+s.id+',\'approve\')">Duyệt</button><button class="btn-reject" onclick="act('+s.id+',\'reject\')">Từ chối</button>'
+            : (s.status === 'rejected' ? '<button class="btn-approve" onclick="act('+s.id+',\'approve\')">Duyệt lại</button>' : '<button class="btn-reject" onclick="act('+s.id+',\'reject\')">Thu hồi</button>');
+          return '<tr><td>'+escHtml(s.name)+'</td><td>'+escHtml(s.city||'')+'</td><td>'+escHtml(s.admin_email||'')+'</td><td>'+s.user_count+'</td><td>'+escHtml((s.created_at||'').slice(0,16).replace('T',' '))+'</td><td><span class="badge '+s.status+'">'+s.status+'</span></td><td>'+actions+'</td></tr>';
+        }).join('') + '</tbody></table>';
+    })
+    .catch(function(e){ el.innerHTML = '<div class="empty">'+escHtml(e.message)+'</div>'; });
+}
+
+function act(schoolId, action){
+  fetch(API_BASE+'/api/superadmin/schools/'+schoolId+'/'+action, {method:'POST', headers: authHeaders()})
+    .then(function(r){
+      if(r.status === 401 || r.status === 403){ logout(); throw new Error('Phiên đăng nhập hết hạn.'); }
+      return r.json().then(function(d){ if(!r.ok) throw new Error(d.detail||'Lỗi'); return d; });
+    })
+    .then(function(){ loadSchools(); })
+    .catch(function(e){ alert(e.message); });
+}
+
+if(getToken()) showDashboard();
+</script>
+</body>
+</html>

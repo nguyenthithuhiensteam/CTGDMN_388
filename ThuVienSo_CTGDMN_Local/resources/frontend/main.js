@@ -1256,6 +1256,22 @@ function openPrint(){
   openModal('In kế hoạch – '+lbl[AGE], h+'<div style="text-align:center;margin-top:16px"><button onclick="window.print()" style="background:linear-gradient(90deg,var(--pk),var(--pu));color:#fff;border:none;padding:9px 24px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit"><i class=\\"ti ti-printer\\" style=\\"font-size:15px\\"></i> In trang này</button></div>');
 }
 
+// ─── ỦNG HỘ TÁC GIẢ (mới, kín đáo — chỉ hiện khi người dùng chủ động bấm) ───
+function openDonateModal(){
+  var body =
+    '<div class="donate-qr-box">' +
+    '<p style="font-size:12px;color:var(--muted);line-height:1.7;margin:0 0 4px">' +
+    'Nếu thấy app hữu ích, bạn có thể ủng hộ một chút để mình duy trì và làm tiếp. Hoàn toàn tuỳ tâm, không bắt buộc.</p>' +
+    '<img src="assets/donate-qr.png" alt="" onerror="this.style.display=\'none\'">' +
+    '<div class="donate-info">' +
+    '<div><b>Nguyễn Thị Thu Hiền</b></div>' +
+    '<div>Số tài khoản: 109002160491</div>' +
+    '<div>VietinBank – CN Tuyên Quang</div>' +
+    '</div>' +
+    '</div>';
+  openModal('Ủng hộ tác giả', body);
+}
+
 
 
 // ─── UPLOAD TÀI LIỆU ─────────────────────────────────────────────
@@ -2833,6 +2849,7 @@ function doRegisterSchool(){
   var admin_password = document.getElementById('auth-reg-password').value;
   var errEl = document.getElementById('auth-register-error');
   errEl.textContent = '';
+  errEl.style.color = '';
   if(!school_name || !admin_email || admin_password.length < 6){
     errEl.textContent = 'Vui lòng nhập tên trường, email và mật khẩu tối thiểu 6 ký tự';
     return;
@@ -2844,9 +2861,14 @@ function doRegisterSchool(){
     .then(function(r){ return r.json().then(function(data){ return {ok:r.ok, data:data}; }); })
     .then(function(res){
       if(!res.ok) throw new Error(res.data.detail || 'Đăng ký thất bại');
+      if(res.data.status === 'pending'){
+        errEl.style.color = 'var(--gdmn-green,#3A9A3E)';
+        errEl.textContent = 'Đăng ký thành công! Tài khoản đang chờ quản trị viên hệ thống duyệt. Bạn sẽ đăng nhập được sau khi được duyệt.';
+        return;
+      }
       onAuthSuccess(res.data);
     })
-    .catch(function(e){ errEl.textContent = e.message; });
+    .catch(function(e){ errEl.style.color = ''; errEl.textContent = e.message; });
 }
 
 function onAuthSuccess(authData){

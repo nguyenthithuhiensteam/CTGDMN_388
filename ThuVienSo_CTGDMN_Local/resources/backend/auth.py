@@ -106,3 +106,26 @@ def get_current_user(authorization: str | None = Header(default=None)) -> Curren
 def require_admin(user: CurrentUser) -> None:
     if user.role != "admin":
         raise HTTPException(status_code=403, detail="Chỉ hiệu trưởng/quản trị trường mới thực hiện được thao tác này.")
+
+
+def require_superadmin(user: CurrentUser) -> None:
+    if user.role != "superadmin":
+        raise HTTPException(status_code=403, detail="Chỉ quản trị hệ thống mới thực hiện được thao tác này.")
+
+
+def get_superadmin_credentials() -> tuple[str, str] | None:
+    email = os.environ.get("CT388_SUPERADMIN_EMAIL", "").strip().lower()
+    password = os.environ.get("CT388_SUPERADMIN_PASSWORD", "").strip()
+    if not email or not password:
+        return None
+    return email, password
+
+
+def requires_school_approval() -> bool:
+    """Chỉ bật hàng rào duyệt trường khi có tài khoản quản trị hệ thống được
+    cấu hình (CT388_SUPERADMIN_EMAIL/PASSWORD) — tức là có người thực sự duyệt
+    được. Không dựa vào DATABASE_URL vì bản web hosted vẫn có thể chạy tạm bằng
+    SQLite (chưa nối Postgres) mà vẫn cần duyệt. Không đặt 2 biến này (mặc định
+    của bản desktop) thì đăng ký tự động duyệt ngay — tránh trường hợp đăng ký
+    xong rồi kẹt mãi vì không ai duyệt được."""
+    return get_superadmin_credentials() is not None

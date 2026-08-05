@@ -6,7 +6,16 @@ from fastapi.staticfiles import StaticFiles
 
 from backend import db
 from backend.init_db import init_database
-from backend.routers import ai_routes, audit_routes, auth_routes, children, curriculum, license_routes, plans
+from backend.routers import (
+    ai_routes,
+    audit_routes,
+    auth_routes,
+    children,
+    curriculum,
+    license_routes,
+    plans,
+    superadmin_routes,
+)
 
 app = FastAPI(
     title="CT388 App API",
@@ -29,6 +38,7 @@ app.include_router(children.router)
 app.include_router(ai_routes.router)
 app.include_router(plans.router)
 app.include_router(audit_routes.router)
+app.include_router(superadmin_routes.router)
 
 
 @app.on_event("startup")

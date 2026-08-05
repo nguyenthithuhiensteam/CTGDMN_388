@@ -1,3 +1,4 @@
+import hmac
 from typing import Any
 
 from fastapi import APIRouter, Depends, HTTPException
@@ -6,7 +7,16 @@ from sqlalchemy.exc import IntegrityError
 
 from backend import db
 from backend.audit import write_audit_log
-from backend.auth import CurrentUser, create_token, get_current_user, hash_password, require_admin, verify_password
+from backend.auth import (
+    CurrentUser,
+    create_token,
+    get_current_user,
+    get_superadmin_credentials,
+    hash_password,
+    require_admin,
+    requires_school_approval,
+    verify_password,
+)
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -36,6 +46,7 @@ class AuthResponse(BaseModel):
     school_id: int
     school_name: str
     full_name: str
+    status: str = "approved"
 
 
 def _login_response(conn, user_row) -> AuthResponse:
@@ -47,7 +58,14 @@ def _login_response(conn, user_row) -> AuthResponse:
         school_id=user_row["school_id"],
         school_name=school["name"] if school else "",
         full_name=user_row["full_name"] or "",
+        status=school["status"] if school else "approved",
     )
+
+
+_SCHOOL_STATUS_MESSAGE = {
+    "pending": "Đăng ký đã được ghi nhận. Tài khoản đang chờ quản trị viên hệ thống duyệt trước khi có thể đăng nhập.",
+    "rejected": "Yêu cầu đăng ký của trường này đã bị từ chối. Vui lòng liên hệ quản trị viên hệ thống.",
+}
 
 
 @router.post("/register-school", response_model=AuthResponse)
@@ -56,11 +74,14 @@ def register_school(payload: RegisterSchoolRequest) -> AuthResponse:
         raise HTTPException(status_code=400, detail="Vui lòng nhập tên trường.")
     if not payload.admin_email.strip() or len(payload.admin_password) < 6:
         raise HTTPException(status_code=400, detail="Email hợp lệ và mật khẩu tối thiểu 6 ký tự.")
+    status = "pending" if requires_school_approval() else "approved"
     with db.get_connection() as conn:
         with conn.begin():
             try:
                 school_id = db.insert_returning_id(
-                    conn, db.schools, {"name": payload.school_name.strip(), "city": payload.city.strip()}
+                    conn,
+                    db.schools,
+                    {"name": payload.school_name.strip(), "city": payload.city.strip(), "status": status},
                 )
                 user_id = db.insert_returning_id(
                     conn,
@@ -76,23 +97,52 @@ def register_school(payload: RegisterSchoolRequest) -> AuthResponse:
             except IntegrityError:
                 raise HTTPException(status_code=409, detail="Email này đã được đăng ký.")
             write_audit_log(conn, school_id, user_id, "create", "school", school_id, payload.school_name.strip())
+            if status == "pending":
+                return AuthResponse(
+                    token="",
+                    role="admin",
+                    school_id=school_id,
+                    school_name=payload.school_name.strip(),
+                    full_name=payload.admin_full_name.strip(),
+                    status="pending",
+                )
             user_row = conn.execute(db.users.select().filter_by(id=user_id)).mappings().fetchone()
             return _login_response(conn, user_row)
 
 
 @router.post("/login", response_model=AuthResponse)
 def login(payload: LoginRequest) -> AuthResponse:
+    email = payload.email.strip().lower()
+    superadmin = get_superadmin_credentials()
+    if superadmin and email == superadmin[0] and hmac.compare_digest(payload.password, superadmin[1]):
+        token = create_token(0, 0, "superadmin")
+        return AuthResponse(
+            token=token, role="superadmin", school_id=0, school_name="Quản trị hệ thống", full_name="Quản trị hệ thống"
+        )
     with db.get_connection() as conn:
-        user_row = conn.execute(
-            db.users.select().filter_by(email=payload.email.strip().lower())
-        ).mappings().fetchone()
+        user_row = conn.execute(db.users.select().filter_by(email=email)).mappings().fetchone()
         if not user_row or not verify_password(payload.password, user_row["password_hash"]):
             raise HTTPException(status_code=401, detail="Email hoặc mật khẩu không đúng.")
+        school = conn.execute(db.schools.select().filter_by(id=user_row["school_id"])).mappings().fetchone()
+        school_status = school["status"] if school else "approved"
+        if school_status != "approved":
+            raise HTTPException(
+                status_code=403, detail=_SCHOOL_STATUS_MESSAGE.get(school_status, "Tài khoản chưa thể đăng nhập.")
+            )
         return _login_response(conn, user_row)
 
 
 @router.get("/me")
 def auth_me(current_user: CurrentUser = Depends(get_current_user)) -> dict[str, Any]:
+    if current_user.role == "superadmin":
+        return {
+            "user_id": 0,
+            "email": "",
+            "full_name": "Quản trị hệ thống",
+            "role": "superadmin",
+            "school_id": 0,
+            "school_name": "Quản trị hệ thống",
+        }
     with db.get_connection() as conn:
         user_row = conn.execute(db.users.select().filter_by(id=current_user.user_id)).mappings().fetchone()
         school = conn.execute(db.schools.select().filter_by(id=current_user.school_id)).mappings().fetchone()
