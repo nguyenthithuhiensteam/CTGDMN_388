@@ -222,6 +222,7 @@ function nav(el,id){
   if(id==='settings') renderSettings();
   if(id==='home') renderHomeDashboard();
   if(id==='superadmin') loadSuperadminSchools(SUPERADMIN_TAB);
+  if(id==='kh') renderKH();
 }
 
 function setAge(a,el){
@@ -229,8 +230,7 @@ function setAge(a,el){
   AGE=dataAge;
   document.querySelectorAll('.ap').forEach(p=>p.classList.remove('on'));
   if(el) el.classList.add('on');
-  renderKH();
-renderKhPhases();
+  renderKhPhases();
   var lbl={nt:'Nhà trẻ 12-36T',nt12:'Nhà trẻ 12-24T',nt24:'Nhà trẻ 24-36T',mg3:'MG Bé 3-4T',mg4:'MG Nhỡ 4-5T',mg5:'MG Lớn 5-6T'};
   var kl=document.getElementById('kh-lbl'); if(kl) kl.textContent=lbl[a]||lbl[dataAge];
   var tl2=document.getElementById('tracker-age'); if(tl2) tl2.textContent=lbl[a]||lbl[dataAge];
@@ -242,6 +242,7 @@ renderKhPhases();
   if(CUR_PAGE==='tracker')renderTracker();
   if(CUR_PAGE==='builder')renderBuilder();
   if(CUR_PAGE==='calendar')renderCalendar();
+  if(CUR_PAGE==='kh')renderKH();
   toast('Đã chọn: '+(lbl[a]||lbl[dataAge]));
 }
 
@@ -419,60 +420,316 @@ function renderCTSS(){
     '</tbody></table></div>';
 }
 
-var YEAR_PLAN_DEMO_DATA = THEMES;
-var DEMO_YEAR_PLAN_PHASES = [
-  {n:'Giai đoạn 1',t:'Thích nghi & Hòa nhập',m:'Tháng 9/2026',d:'Minh họa cấu trúc phân bổ giai đoạn đầu năm.',c:'bl'},
-  {n:'Giai đoạn 2',t:'Khám phá & Trải nghiệm',m:'Tháng 10-11/2026',d:'Minh họa cấu trúc phân bổ chủ đề/bối cảnh.',c:'gn'},
-  {n:'Giai đoạn 3',t:'Phát triển năng lực',m:'Tháng 12/2026-4/2027',d:'Minh họa cấu trúc theo dõi mục tiêu trọng tâm.',c:'pu'},
-  {n:'Giai đoạn 4',t:'Tổng kết & Chuyển tiếp',m:'Tháng 5/2027',d:'Minh họa cấu trúc đánh giá và điều chỉnh cuối năm.',c:'pk'}
-];
 function renderKhPhases(){
-  // Legacy hook: renderKH now owns the full year-plan page, including the supplementary timeline.
+  // Legacy hook, kept as no-op: renderKH() giờ tự quản lý toàn bộ trang lập kế hoạch.
 }
-function getYearPlanAgeInfo(){
-  var map={
-    nt:{dataset:'Bộ Nhà trẻ 12-36 tháng',age:'Nhà trẻ 24-36T',emphasis:'Ưu tiên chăm sóc - nuôi dưỡng - giáo dục trong sinh hoạt hằng ngày.'},
-    mg3:{dataset:'Bộ Mẫu giáo 3-6 tuổi',age:'Mẫu giáo bé 3-4T',emphasis:'Ưu tiên chơi, trải nghiệm, hợp tác, khám phá, biểu đạt và giải quyết vấn đề.'},
-    mg4:{dataset:'Bộ Mẫu giáo 3-6 tuổi',age:'Mẫu giáo nhỡ 4-5T',emphasis:'Ưu tiên chơi, trải nghiệm, hợp tác, khám phá, biểu đạt và giải quyết vấn đề.'},
-    mg5:{dataset:'Bộ Mẫu giáo 3-6 tuổi',age:'Mẫu giáo lớn 5-6T',emphasis:'Ưu tiên chơi, trải nghiệm, hợp tác, khám phá, biểu đạt và giải quyết vấn đề.'}
-  };
-  return map[AGE]||map.nt;
-}
-function renderYearPlanChips(items,cls){
-  return '<div class="year-plan-chip-row">'+items.map(function(x){return '<span class="year-plan-chip '+(cls||'')+'">'+x+'</span>';}).join('')+'</div>';
-}
-function renderYearPlanDemoTable(rows){
-  return '<div class="year-plan-table-wrap"><table class="year-plan-table"><thead><tr><th>Nhãn</th><th>Tháng</th><th>Chủ đề/bối cảnh</th><th>Mục tiêu trọng tâm</th><th>Năng lực</th><th>Mã/YCCĐ</th><th>Hoạt động gợi ý</th><th>Minh chứng</th></tr></thead><tbody>'+
-    rows.map(function(r){return '<tr><td><span class="year-plan-demo-tag">Minh họa</span></td><td>Tháng '+escHtml(String(r[0]))+'</td><td>'+escHtml(r[1])+'</td><td>Dữ liệu minh họa - sẽ thay bằng dữ liệu từ Excel sau khi import.</td><td>'+escHtml(r[2])+'</td><td>Chờ import dữ liệu từ Excel.</td><td>'+escHtml(r[4]||'Hoạt động gợi ý minh họa')+'</td><td>Ảnh/video, sản phẩm, câu nói, quan sát của giáo viên.</td></tr>';}).join('')+
-    '</tbody></table></div>';
-}
-function renderYearPlanTimeline(phases){
-  phases=phases||DEMO_YEAR_PLAN_PHASES;
-  return '<div class="year-plan-timeline">'+phases.map(function(p){return '<div class="year-plan-tl-item"><div class="year-plan-tl-month" style="color:'+CC[p.c]+'">'+escHtml(p.m)+'</div><div class="year-plan-tl-title">'+escHtml(p.n)+' - '+escHtml(p.t)+'</div><div class="year-plan-tl-text">'+escHtml(p.d)+'</div></div>';}).join('')+'</div>';
-}
+// ─── LẬP KẾ HOẠCH GIÁO DỤC LIÊN THÔNG (thật, theo skill lập kế hoạch CT388) ──
+// Thay cho khung demo cũ (YEAR_PLAN_DEMO_DATA) — giờ đọc/ghi thật qua
+// /api/plans/*, mục tiêu năm phân giải từ YCCĐ thật (yccd_id ổn định),
+// không đụng tới dữ liệu chương trình gốc, chỉ tham chiếu qua FK.
+var PLAN_AGE_GROUPS = null;
+var PLAN_YCCD_LIST = null;
+var PLAN_LIST = [];
+var PLAN_ACTIVE_ID = null;
+var PLAN_ACTIVE_TAB = 'muctieu';
+var PLAN_GOALS = [];
+var PLAN_WEEKS = [];
+
 function renderKH(){
-  try{
-    var page=document.getElementById('p-kh'); if(!page) return;
-    var ageInfo=getYearPlanAgeInfo();
-    var rows=YEAR_PLAN_DEMO_DATA[AGE]||[];
-    var domains=['Thể chất','Tình cảm - xã hội','Ngôn ngữ','Nhận thức','Nghệ thuật'];
-    var qualities=['Yêu thương','Tôn trọng','Trung thực','Trách nhiệm'];
-    var competencies=['Giao tiếp','Hợp tác','Giải quyết vấn đề','Tự lực','Thích ứng'];
-    page.innerHTML=
-      '<div class="year-plan-demo-alert"><i class="ti ti-alert-circle"></i><div>Đây là bản demo giao diện. Nội dung minh họa dưới đây chưa phải kế hoạch chính thức. Dữ liệu chính thức sẽ được lấy từ file Excel sau khi import.</div></div>'+ 
-      '<div class="pg-h year-plan-head"><div><div class="pg-title">KẾ HOẠCH GIÁO DỤC NĂM HỌC <span class="year-plan-badge">DEMO GIAO DIỆN</span></div><div class="pg-sub">Cấu trúc dùng để hình dung cách app sẽ hiển thị kế hoạch năm sau khi kết nối dữ liệu Excel.</div></div></div>'+ 
-      '<div class="note info"><i class="ti ti-info-circle"></i><div>Dữ liệu minh họa – sẽ thay bằng dữ liệu từ Excel sau khi import.</div></div>'+ 
-      '<section class="year-plan-section"><h3>I. Thông tin chung</h3><div class="year-plan-info-grid"><div><b>Bộ tài liệu</b><span>'+ageInfo.dataset+'</span></div><div><b>Độ tuổi</b><span id="kh-lbl">'+ageInfo.age+'</span></div><div><b>Năm học</b><span>2026-2027</span></div><div><b>Đặc điểm lớp</b><span>Dữ liệu minh họa - giáo viên sẽ nhập sau.</span></div><div><b>Điều kiện thực tế</b><span>Dữ liệu minh họa - giáo viên sẽ nhập sau.</span></div></div></section>'+ 
-      '<section class="year-plan-section"><h3>II. Mục tiêu năm học</h3><div class="year-plan-objectives"><div class="year-plan-objective-card"><h4>Lĩnh vực phát triển</h4>'+renderYearPlanChips(domains,'domain')+'</div><div class="year-plan-objective-card"><h4>Phẩm chất trọng tâm</h4>'+renderYearPlanChips(qualities,'quality')+'</div><div class="year-plan-objective-card"><h4>Năng lực trọng tâm</h4>'+renderYearPlanChips(competencies,'competency')+'</div><div class="year-plan-objective-card"><h4>Mã/YCCĐ liên quan</h4><p>Chờ import dữ liệu từ Excel.</p></div></div><div class="year-plan-prof-note">Mã/YCCĐ là khung đối chiếu, không phải điểm số.</div></section>'+ 
-      '<section class="year-plan-section"><h3>III. Định hướng tổ chức giáo dục</h3><div class="year-plan-orient-grid"><div><i class="ti ti-leaf"></i><h4>Môi trường</h4><p>Môi trường an toàn, thân thiện, mở, có cơ hội cho trẻ chơi, trải nghiệm, giao tiếp và thể hiện bản thân.</p></div><div><i class="ti ti-bulb"></i><h4>Phương pháp</h4><p>Học qua chơi, học qua trải nghiệm, quan sát trẻ, gợi mở, khuyến khích trẻ chủ động.</p></div><div><i class="ti ti-users"></i><h4>Hình thức tổ chức</h4><p>Cá nhân, nhóm nhỏ, cả lớp, hoạt động trong sinh hoạt hằng ngày, hoạt động ngoài trời, hoạt động góc.</p></div></div><div class="year-plan-emphasis">'+ageInfo.emphasis+'</div></section>'+ 
-      '<section class="year-plan-section year-plan-main-table"><h3>IV. Phân bổ theo tháng/chủ đề</h3><div class="year-plan-table-note">Bảng dưới đây là minh họa cấu trúc. Dữ liệu chính thức sẽ lấy từ sheet kế hoạch năm trong file Excel sau khi import.</div>'+renderYearPlanDemoTable(rows)+'</section>'+ 
-      '<section class="year-plan-section"><h3>Timeline minh họa phân bổ tháng/chủ đề</h3>'+renderYearPlanTimeline(DEMO_YEAR_PLAN_PHASES)+'</section>'+ 
-      '<section class="year-plan-section"><h3>V. Đánh giá và điều chỉnh</h3><div class="year-plan-eval-grid"><div><h4>Minh chứng</h4><p>Ảnh, video, sản phẩm của trẻ, câu nói nguyên văn, biểu hiện trong chơi và sinh hoạt.</p></div><div><h4>Bảng kiểm</h4><p>Dùng để theo dõi biểu hiện theo nhóm/lớp, không dùng để xếp loại trẻ.</p></div><div><h4>Nhật ký quan sát</h4><p>Ghi lại bối cảnh, hành vi, lời nói, mức hỗ trợ và hướng điều chỉnh tiếp theo.</p></div><div><h4>Trao đổi cha mẹ</h4><p>Chia sẻ sự tiến bộ của trẻ, thống nhất cách hỗ trợ giữa gia đình và nhà trường.</p></div></div><div class="year-plan-prof-note">Đánh giá nhằm điều chỉnh kế hoạch và hỗ trợ sự tiến bộ của trẻ, không so sánh trẻ với trẻ.</div></section>';
-  }catch(err){
-    if(window.console && console.error) console.error(err);
-    var fallback=document.getElementById('p-kh');
-    if(fallback) fallback.innerHTML='<div class="pg-h"><div class="pg-title">Kế hoạch giáo dục năm học</div></div><div class="note warn"><i class="ti ti-alert-circle"></i><div>Không thể hiển thị trang kế hoạch năm lúc này. Dữ liệu thật chưa bị ảnh hưởng.</div></div>';
+  var page = document.getElementById('p-kh');
+  if(!page) return;
+  page.innerHTML = '<div class="pg-h"><div class="pg-title">Lập kế hoạch giáo dục</div><div class="pg-sub">Mục tiêu năm liên thông từ YCCĐ · Phiên chế 35 tuần</div></div><div class="note info"><i class="ti ti-info-circle"></i><div>Đang tải...</div></div>';
+  loadPlanningPage();
+}
+
+function loadPlanningPage(){
+  var tasks = [apiGet('/api/plans/annual')];
+  if(!PLAN_AGE_GROUPS) tasks.push(apiGet('/api/age-groups')); else tasks.push(Promise.resolve(PLAN_AGE_GROUPS));
+  if(!PLAN_YCCD_LIST) tasks.push(apiGet('/api/yccd')); else tasks.push(Promise.resolve(PLAN_YCCD_LIST));
+  Promise.all(tasks).then(function(results){
+    PLAN_LIST = results[0] || [];
+    PLAN_AGE_GROUPS = results[1] || [];
+    PLAN_YCCD_LIST = results[2] || [];
+    if(!PLAN_ACTIVE_ID && PLAN_LIST.length) PLAN_ACTIVE_ID = PLAN_LIST[PLAN_LIST.length - 1].id;
+    renderPlanningShell();
+  }).catch(function(e){
+    var page = document.getElementById('p-kh');
+    if(page) page.innerHTML = '<div class="pg-h"><div class="pg-title">Lập kế hoạch giáo dục</div></div><div class="note warn"><i class="ti ti-alert-circle"></i><div>Không tải được dữ liệu kế hoạch: ' + escHtml(e.message) + '</div></div>';
+  });
+}
+
+function ageGroupName(id){
+  var g = (PLAN_AGE_GROUPS || []).find(function(a){ return a.id === id; });
+  return g ? g.name : '';
+}
+
+function renderPlanningShell(){
+  var page = document.getElementById('p-kh');
+  if(!page) return;
+  var planOptions = PLAN_LIST.map(function(p){
+    return '<option value="' + p.id + '"' + (p.id === PLAN_ACTIVE_ID ? ' selected' : '') + '>' + escHtml(p.title || ('Kế hoạch ' + p.school_year)) + ' – ' + escHtml(p.school_year) + ' (' + escHtml(p.status) + ')</option>';
+  }).join('');
+  var activePlan = PLAN_LIST.find(function(p){ return p.id === PLAN_ACTIVE_ID; });
+
+  var html = '<div class="pg-h"><div class="pg-title">Lập kế hoạch giáo dục</div><div class="pg-sub">Mục tiêu năm liên thông từ YCCĐ · Phiên chế 35 tuần</div></div>';
+  html += '<div class="card" style="margin-bottom:14px"><div class="card-body" style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">';
+  if(PLAN_LIST.length){
+    html += '<div class="ga-lbl" style="margin:0">Kế hoạch năm:</div><select id="plan-select" class="ga-sel" style="max-width:340px" onchange="selectAnnualPlan(this.value)">' + planOptions + '</select>';
   }
+  html += '<button class="ga-sec-btn" onclick="openNewPlanForm()"><i class="ti ti-plus"></i> Tạo kế hoạch năm mới</button>';
+  if(activePlan && activePlan.status !== 'approved'){
+    html += '<button class="ga-sec-btn" style="background:var(--gdmn-green-lt,#EAF6EB);color:var(--gdmn-green,#3A9A3E)" onclick="approveActivePlan()"><i class="ti ti-circle-check"></i> Duyệt kế hoạch này</button>';
+  }
+  if(activePlan) html += '<span class="note ' + (activePlan.status === 'approved' ? 'ok' : 'info') + '" style="margin:0;padding:4px 10px;display:inline-flex"><i class="ti ti-' + (activePlan.status === 'approved' ? 'circle-check' : 'clock') + '"></i><div>' + (activePlan.status === 'approved' ? 'Đã duyệt' : 'Nháp') + '</div></span>';
+  html += '</div></div>';
+
+  if(!activePlan){
+    html += '<div class="note info"><i class="ti ti-info-circle"></i><div>Chưa có kế hoạch năm nào. Bấm "Tạo kế hoạch năm mới" để bắt đầu — đây là bước đầu tiên của chuỗi liên thông (Mục tiêu năm → 35 tuần → Tháng → Tuần → Ngày → Giáo án).</div></div>';
+    page.innerHTML = html;
+    return;
+  }
+
+  html += '<div class="tabs" id="plan-tabs">' +
+    '<button class="tab' + (PLAN_ACTIVE_TAB === 'muctieu' ? ' on' : '') + '" onclick="setPlanningTab(this,\'muctieu\')">🎯 Mục tiêu năm</button>' +
+    '<button class="tab' + (PLAN_ACTIVE_TAB === '35tuan' ? ' on' : '') + '" onclick="setPlanningTab(this,\'35tuan\')">📅 Phiên chế 35 tuần</button>' +
+    '</div>';
+  html += '<div id="plan-tab-body">Đang tải...</div>';
+  page.innerHTML = html;
+
+  if(PLAN_ACTIVE_TAB === 'muctieu') loadAndRenderGoals();
+  else loadAndRenderWeeks();
+}
+
+function selectAnnualPlan(id){
+  PLAN_ACTIVE_ID = Number(id);
+  renderPlanningShell();
+}
+
+function setPlanningTab(el, tab){
+  PLAN_ACTIVE_TAB = tab;
+  document.querySelectorAll('#plan-tabs .tab').forEach(function(t){ t.classList.remove('on'); });
+  if(el) el.classList.add('on');
+  if(tab === 'muctieu') loadAndRenderGoals();
+  else loadAndRenderWeeks();
+}
+
+function openNewPlanForm(){
+  var ageOptions = (PLAN_AGE_GROUPS || []).map(function(a){ return '<option value="' + a.id + '">' + escHtml(a.name) + '</option>'; }).join('');
+  var body = '<div>' +
+    '<div class="ga-lbl">Năm học</div><input id="np-year" class="ga-inp" placeholder="VD: 2026-2027" style="margin-bottom:10px">' +
+    '<div class="ga-lbl">Độ tuổi</div><select id="np-age" class="ga-sel" style="margin-bottom:10px">' + ageOptions + '</select>' +
+    '<div class="ga-lbl">Tên kế hoạch</div><input id="np-title" class="ga-inp" placeholder="VD: Kế hoạch năm MG Lớn 5-6 tuổi" style="margin-bottom:14px">' +
+    '<button class="ga-main-btn" onclick="submitNewPlan()">Tạo kế hoạch</button>' +
+    '</div>';
+  openModal('Tạo kế hoạch năm mới', body);
+}
+
+function submitNewPlan(){
+  var school_year = document.getElementById('np-year').value.trim();
+  var age_group_id = Number(document.getElementById('np-age').value) || null;
+  var title = document.getElementById('np-title').value.trim();
+  if(!school_year || !title){ toast('Vui lòng nhập năm học và tên kế hoạch'); return; }
+  apiPost('/api/plans/annual', {school_year: school_year, age_group_id: age_group_id, title: title}).then(function(res){
+    closeModalBtn();
+    toast('✅ Đã tạo kế hoạch năm');
+    PLAN_ACTIVE_ID = res.id;
+    loadPlanningPage();
+  }).catch(function(e){ toast('❌ ' + e.message); });
+}
+
+function approveActivePlan(){
+  if(!PLAN_ACTIVE_ID) return;
+  apiPost('/api/plans/annual/' + PLAN_ACTIVE_ID + '/approve', {}).then(function(){
+    toast('✅ Đã duyệt kế hoạch năm');
+    loadPlanningPage();
+  }).catch(function(e){ toast('❌ ' + e.message); });
+}
+
+// --- Tab: Mục tiêu năm ---
+function loadAndRenderGoals(){
+  var body = document.getElementById('plan-tab-body');
+  if(body) body.innerHTML = 'Đang tải...';
+  Promise.all([
+    apiGet('/api/plans/annual/' + PLAN_ACTIVE_ID + '/goals'),
+    apiGet('/api/plans/annual/' + PLAN_ACTIVE_ID + '/coverage')
+  ]).then(function(results){
+    PLAN_GOALS = results[0] || [];
+    renderGoalsTab(results[1]);
+  }).catch(function(e){ if(body) body.innerHTML = '<div class="note warn"><i class="ti ti-alert-circle"></i><div>' + escHtml(e.message) + '</div></div>'; });
+}
+
+var PLAN_STAGE_LABELS = {'lam-quen':'Làm quen','hinh-thanh':'Hình thành','cung-co':'Củng cố','van-dung':'Vận dụng'};
+
+function renderGoalsTab(coverage){
+  var body = document.getElementById('plan-tab-body');
+  if(!body) return;
+  var html = '<div class="card" style="margin-bottom:14px"><div class="card-body" style="display:flex;gap:16px;flex-wrap:wrap;align-items:center">' +
+    '<div><b>' + coverage.total_goals + '</b> mục tiêu</div>' +
+    '<div><b>' + coverage.total_weeks + '</b> tuần học</div>' +
+    (coverage.orphan_count > 0
+      ? '<div class="note warn" style="margin:0;padding:4px 10px"><i class="ti ti-alert-circle"></i><div>' + coverage.orphan_count + ' mục tiêu chưa được phân bổ vào tuần nào (mục tiêu "mồ côi")</div></div>'
+      : '<div class="note ok" style="margin:0;padding:4px 10px"><i class="ti ti-circle-check"></i><div>Mọi mục tiêu đã được phân bổ vào ít nhất 1 tuần</div></div>') +
+    '<button class="ga-main-btn" style="margin-left:auto" onclick="openAddGoalForm()"><i class="ti ti-plus"></i> Thêm mục tiêu</button>' +
+    '</div></div>';
+
+  if(!PLAN_GOALS.length){
+    html += '<div class="note info"><i class="ti ti-info-circle"></i><div>Chưa có mục tiêu nào. Mỗi mục tiêu nên bám 1 YCCĐ nguồn và viết theo hành vi quan sát được (trẻ + hành động + bối cảnh + mức hỗ trợ khi cần).</div></div>';
+  } else {
+    html += '<div class="overview-table-wrap"><table class="overview-table"><thead><tr><th>Mã YCCĐ</th><th>Mục tiêu phân giải</th><th>Giai đoạn</th><th>Bối cảnh/HĐ</th><th></th></tr></thead><tbody>' +
+      PLAN_GOALS.map(function(g){
+        return '<tr><td><b>' + escHtml(g.yccd_code || '—') + '</b><div style="color:var(--muted);font-size:11px;max-width:220px">' + escHtml((g.yccd_content || '').slice(0, 90)) + '</div></td>' +
+          '<td>' + escHtml(g.goal_text) + '</td>' +
+          '<td>' + escHtml(PLAN_STAGE_LABELS[g.stage] || g.stage || '—') + '</td>' +
+          '<td>' + escHtml(g.context_text || '—') + '</td>' +
+          '<td><button class="ga-sec-btn" style="background:var(--gdmn-red-lt,#FDEAEA);color:var(--gdmn-red,#E84545)" onclick="deleteGoalConfirm(' + g.id + ')">Xoá</button></td></tr>';
+      }).join('') + '</tbody></table></div>';
+  }
+  body.innerHTML = html;
+}
+
+function openAddGoalForm(){
+  var yccdOptions = '<option value="">-- Không chọn YCCĐ nguồn --</option>' + (PLAN_YCCD_LIST || []).map(function(y){
+    return '<option value="' + y.id + '">' + escHtml(y.code) + ' – ' + escHtml((y.content || '').slice(0, 60)) + '</option>';
+  }).join('');
+  var stageOptions = Object.keys(PLAN_STAGE_LABELS).map(function(k){ return '<option value="' + k + '">' + PLAN_STAGE_LABELS[k] + '</option>'; }).join('');
+  var body = '<div>' +
+    '<div class="ga-lbl">YCCĐ nguồn (tuỳ chọn nhưng nên chọn để giữ liên thông)</div>' +
+    '<select id="ag-yccd" class="ga-sel" style="margin-bottom:10px">' + yccdOptions + '</select>' +
+    '<div class="ga-lbl">Mục tiêu phân giải (trẻ + hành động quan sát được + bối cảnh + hỗ trợ nếu cần)</div>' +
+    '<textarea id="ag-text" class="ga-inp" rows="2" style="margin-bottom:10px" placeholder="VD: Trẻ chủ động tham gia vận động trong giờ thể dục sáng, thực hiện đúng 3/4 động tác khi có bạn làm mẫu"></textarea>' +
+    '<div class="ga-lbl">Giai đoạn</div><select id="ag-stage" class="ga-sel" style="margin-bottom:10px">' + stageOptions + '</select>' +
+    '<div class="ga-lbl">Bối cảnh/hoạt động dự kiến (tuỳ chọn)</div><input id="ag-context" class="ga-inp" style="margin-bottom:10px" placeholder="VD: Thể dục sáng, giờ chơi vận động ngoài trời">' +
+    '<div class="ga-lbl">Biểu hiện/minh chứng (tuỳ chọn)</div><input id="ag-evidence" class="ga-inp" style="margin-bottom:14px" placeholder="VD: Quan sát trực tiếp, ảnh/video hoạt động">' +
+    '<button class="ga-main-btn" onclick="submitNewGoal()">Thêm mục tiêu</button>' +
+    '</div>';
+  openModal('Thêm mục tiêu năm', body);
+}
+
+function submitNewGoal(){
+  var yccd_id = Number(document.getElementById('ag-yccd').value) || null;
+  var goal_text = document.getElementById('ag-text').value.trim();
+  if(!goal_text){ toast('Vui lòng nhập mục tiêu'); return; }
+  var payload = {
+    yccd_id: yccd_id,
+    goal_text: goal_text,
+    stage: document.getElementById('ag-stage').value,
+    context_text: document.getElementById('ag-context').value.trim(),
+    evidence_text: document.getElementById('ag-evidence').value.trim()
+  };
+  apiPost('/api/plans/annual/' + PLAN_ACTIVE_ID + '/goals', payload).then(function(){
+    closeModalBtn();
+    toast('✅ Đã thêm mục tiêu');
+    loadAndRenderGoals();
+  }).catch(function(e){ toast('❌ ' + e.message); });
+}
+
+function deleteGoalConfirm(goalId){
+  if(!confirm('Xoá mục tiêu này khỏi kế hoạch năm?')) return;
+  apiDelete('/api/plans/annual/goals/' + goalId).then(function(){
+    toast('🗑️ Đã xoá mục tiêu');
+    loadAndRenderGoals();
+  }).catch(function(e){ toast('❌ ' + e.message); });
+}
+
+// --- Tab: Phiên chế 35 tuần ---
+function loadAndRenderWeeks(){
+  var body = document.getElementById('plan-tab-body');
+  if(body) body.innerHTML = 'Đang tải...';
+  Promise.all([
+    apiGet('/api/plans/35-weeks?school_annual_plan_id=' + PLAN_ACTIVE_ID),
+    PLAN_GOALS.length ? Promise.resolve(PLAN_GOALS) : apiGet('/api/plans/annual/' + PLAN_ACTIVE_ID + '/goals')
+  ]).then(function(results){
+    PLAN_WEEKS = results[0] || [];
+    PLAN_GOALS = results[1] || [];
+    renderWeeksTab();
+  }).catch(function(e){ if(body) body.innerHTML = '<div class="note warn"><i class="ti ti-alert-circle"></i><div>' + escHtml(e.message) + '</div></div>'; });
+}
+
+function renderWeeksTab(){
+  var body = document.getElementById('plan-tab-body');
+  if(!body) return;
+  if(!PLAN_WEEKS.length){
+    body.innerHTML = '<div class="card"><div class="card-body">' +
+      '<div class="note info" style="margin-bottom:12px"><i class="ti ti-info-circle"></i><div>Chưa có khung 35 tuần. Nhập ngày thứ Hai đầu tiên của năm học để tự tạo khung — có thể thêm các tuần nghỉ.</div></div>' +
+      '<div class="ga-lbl">Thứ Hai đầu tiên của năm học</div><input type="date" id="gw-start" class="ga-inp" style="margin-bottom:10px;max-width:220px">' +
+      '<div class="ga-lbl">Các tuần nghỉ (tuỳ chọn — nhập thứ Hai của từng tuần nghỉ, cách nhau bởi dấu phẩy)</div>' +
+      '<input id="gw-skip" class="ga-inp" style="margin-bottom:14px" placeholder="VD: 2027-01-25, 2027-02-01">' +
+      '<button class="ga-main-btn" onclick="submitGenerateWeeks()"><i class="ti ti-calendar-plus"></i> Tạo khung 35 tuần</button>' +
+      '</div></div>';
+    return;
+  }
+  var goalPickList = PLAN_GOALS.map(function(g){ return '<span style="font-size:10.5px;color:var(--muted)">' + escHtml(g.yccd_code || '') + '</span>'; });
+  var html = '<div class="note info" style="margin-bottom:12px"><i class="ti ti-info-circle"></i><div>Bấm vào ô chủ đề để sửa; bấm "Chọn mục tiêu" để gắn mục tiêu trọng tâm cho tuần đó (không bắt buộc chia đều — tuần nào cũng được, mục tiêu phức hợp có thể lặp lại nhiều tuần).</div></div>';
+  html += '<div class="overview-table-wrap"><table class="overview-table"><thead><tr><th>Tuần</th><th>Ngày</th><th>Chủ đề/bối cảnh</th><th>Mục tiêu trọng tâm</th></tr></thead><tbody>' +
+    PLAN_WEEKS.map(function(w){
+      if(w.is_break){
+        return '<tr style="opacity:.55"><td colspan="4"><i class="ti ti-coffee"></i> Nghỉ · ' + escHtml(w.date_range) + '</td></tr>';
+      }
+      var goalBadges = (w.goal_ids || []).map(function(gid){
+        var g = PLAN_GOALS.find(function(x){ return x.id === gid; });
+        return g ? '<span class="tb-badge tb-badge-steam" style="margin:2px">' + escHtml(g.yccd_code || '#' + gid) + '</span>' : '';
+      }).join('');
+      return '<tr>' +
+        '<td><b>' + w.week_number + '</b></td>' +
+        '<td style="white-space:nowrap;font-size:11px">' + escHtml(w.date_range) + '</td>' +
+        '<td><input class="ga-inp" style="padding:6px 8px;font-size:12px" value="' + escHtml(w.theme_title || '') + '" onblur="saveWeekTheme(' + w.id + ', this.value)"></td>' +
+        '<td>' + (goalBadges || '<span style="color:var(--muted);font-size:11px">Chưa chọn</span>') + ' <button class="ga-sec-btn" style="padding:3px 8px;font-size:10.5px" onclick="openWeekGoalsModal(' + w.id + ')">Chọn mục tiêu</button></td>' +
+        '</tr>';
+    }).join('') + '</tbody></table></div>';
+  body.innerHTML = html;
+}
+
+function submitGenerateWeeks(){
+  var start = document.getElementById('gw-start').value;
+  if(!start){ toast('Vui lòng chọn ngày bắt đầu'); return; }
+  var skipRaw = document.getElementById('gw-skip').value.trim();
+  var skip_dates = skipRaw ? skipRaw.split(',').map(function(s){ return s.trim(); }).filter(Boolean) : [];
+  apiPost('/api/plans/35-weeks/generate', {school_annual_plan_id: PLAN_ACTIVE_ID, start_date: start, skip_dates: skip_dates}).then(function(res){
+    toast('✅ Đã tạo khung ' + res.weeks_created + ' tuần');
+    loadAndRenderWeeks();
+  }).catch(function(e){ toast('❌ ' + e.message); });
+}
+
+function saveWeekTheme(weekId, value){
+  var w = PLAN_WEEKS.find(function(x){ return x.id === weekId; });
+  var goal_ids = w ? (w.goal_ids || []) : [];
+  fetch(API_BASE + '/api/plans/35-weeks/' + weekId, {
+    method: 'PUT',
+    headers: Object.assign({'Content-Type': 'application/json'}, authHeaders()),
+    body: JSON.stringify({theme_title: value, goal_ids: goal_ids})
+  }).then(function(r){
+    if(r.ok){ if(w) w.theme_title = value; markSaved(); }
+  });
+}
+
+function openWeekGoalsModal(weekId){
+  var w = PLAN_WEEKS.find(function(x){ return x.id === weekId; });
+  if(!w) return;
+  var current = w.goal_ids || [];
+  var body = '<div id="wg-list" style="max-height:320px;overflow-y:auto">' +
+    (PLAN_GOALS.length ? PLAN_GOALS.map(function(g){
+      return '<label style="display:flex;gap:8px;align-items:flex-start;padding:8px 0;border-bottom:1px solid var(--border);font-size:12.5px">' +
+        '<input type="checkbox" value="' + g.id + '"' + (current.indexOf(g.id) >= 0 ? ' checked' : '') + ' style="margin-top:3px">' +
+        '<span><b>' + escHtml(g.yccd_code || '') + '</b> — ' + escHtml(g.goal_text) + '</span></label>';
+    }).join('') : '<div class="note info"><i class="ti ti-info-circle"></i><div>Chưa có mục tiêu năm nào — thêm ở tab "Mục tiêu năm" trước.</div></div>') +
+    '</div><button class="ga-main-btn" style="margin-top:12px" onclick="saveWeekGoals(' + weekId + ')">Lưu</button>';
+  openModal('Chọn mục tiêu trọng tâm — Tuần ' + w.week_number, body);
+}
+
+function saveWeekGoals(weekId){
+  var checked = Array.prototype.slice.call(document.querySelectorAll('#wg-list input[type=checkbox]:checked')).map(function(c){ return Number(c.value); });
+  var w = PLAN_WEEKS.find(function(x){ return x.id === weekId; });
+  fetch(API_BASE + '/api/plans/35-weeks/' + weekId, {
+    method: 'PUT',
+    headers: Object.assign({'Content-Type': 'application/json'}, authHeaders()),
+    body: JSON.stringify({theme_title: w ? (w.theme_title || '') : '', goal_ids: checked})
+  }).then(function(r){
+    if(!r.ok) throw new Error('Lỗi lưu');
+    if(w) w.goal_ids = checked;
+    closeModalBtn();
+    toast('✅ Đã cập nhật mục tiêu tuần');
+    renderWeeksTab();
+  }).catch(function(e){ toast('❌ ' + e.message); });
 }
 function renderWeek(){
   var el=document.getElementById('wk-tbl'); if(!el) return;
@@ -3338,7 +3595,6 @@ checkAuthAndBoot();
 renderHomeFiles();
 renderHomePhil();
 renderCTPc();
-renderKH();
 renderWeek();
 renderLessons();
 renderRubric();

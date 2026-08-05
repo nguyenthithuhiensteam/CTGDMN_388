@@ -361,6 +361,27 @@ school_annual_plans = Table(
     ts_default_col("updated_at"),
 )
 
+# Mục tiêu năm phân giải theo YCCĐ (mã nguồn ổn định = yccd.code) — đúng
+# nguyên tắc "Xây mục tiêu năm và ma trận bao phủ" của skill lập kế hoạch:
+# outcome_id (yccd_id) – mục tiêu phân giải – nội dung – bối cảnh – giai đoạn
+# (làm quen→hình thành→củng cố→vận dụng) – biểu hiện/minh chứng – phân hóa.
+annual_plan_goals = Table(
+    "annual_plan_goals",
+    metadata,
+    Column("id", Integer, primary_key=True),
+    Column("school_annual_plan_id", Integer, ForeignKey("school_annual_plans.id"), nullable=False),
+    Column("yccd_id", Integer, ForeignKey("yccd.id")),
+    Column("goal_text", Text, nullable=False),
+    Column("content_text", Text),
+    Column("context_text", Text),
+    Column("stage", String),  # lam-quen | hinh-thanh | cung-co | van-dung
+    Column("evidence_text", Text),
+    Column("differentiation_text", Text),
+    Column("sort_order", Integer, default=0),
+    ts_default_col("created_at"),
+    ts_default_col("updated_at"),
+)
+
 plan_35_weeks = Table(
     "plan_35_weeks",
     metadata,
@@ -369,6 +390,8 @@ plan_35_weeks = Table(
     Column("week_number", Integer, nullable=False),  # 1..35
     Column("theme_title", String),
     Column("date_range", String),
+    Column("goal_ids", Text),  # JSON list các annual_plan_goals.id là mục tiêu trọng tâm tuần này
+    Column("is_break", Integer, default=0),  # 1 = tuần nghỉ (không tính vào 35 tuần học)
     Column("status", String, default=PLAN_STATUS_DEFAULT),
     ts_default_col("created_at"),
     ts_default_col("updated_at"),
