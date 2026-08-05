@@ -768,6 +768,7 @@ function renderTrackerStat(){
 }
 
 function exportTracker(){
+  if(blockDownloadIfDisabled()) return;
   var nlLabels=['Giao tiếp','Hợp tác','GQVĐ','Thích ứng','Tự lực'];
   var rows=[['Tên trẻ',...nlLabels]];
   TRACKER_STUDENTS.forEach(s=>{
@@ -923,6 +924,7 @@ window.calNav=function(dir){
 };
 
 function downloadFile(fn,n){
+  if(blockDownloadIfDisabled()) return;
   var fd = FILE_DATA[fn];
   if(!fd){toast('❌ Không tìm thấy file: '+fn);return;}
   var byteStr = atob(fd.b64);
@@ -1012,6 +1014,7 @@ var DEMO_DOWNLOAD_RESOURCES = {
 };
 function downloadToast(){toast('Chức năng này sẽ được hoàn thiện sau khi kết nối dữ liệu Excel.');}
 function downloadSourceExcel(path){
+  if(blockDownloadIfDisabled()) return;
   try{var a=document.createElement('a');a.href=path;a.download=path.split('/').pop();document.body.appendChild(a);a.click();document.body.removeChild(a);toast('Đang mở/tải file Excel nguồn nếu trình duyệt cho phép.');}
   catch(err){downloadToast();}
 }
@@ -1376,6 +1379,7 @@ function renderUploadedFiles(){
 
 // ─── TẢI GIÁO ÁN DOCX ────────────────────────────────────────────
 async function downloadGiaoAnDocx(){
+  if(blockDownloadIfDisabled()) return;
   if(!GA_CURRENT_TEXT){ toast('Chưa có giáo án để tải'); return; }
   var btn = document.getElementById('ga-dl-btn');
   btn.disabled = true;

@@ -3,7 +3,17 @@
 
 var CURRENT_ACCOUNT = null;
 var CHILDREN_LIST = [];
-var APP_VERSION = '1.0.7';
+var APP_VERSION = '1.0.8';
+
+// Giai đoạn trải nghiệm: cho phép xây dựng/lưu tài liệu trong app nhưng
+// tạm khoá tải file về máy (Excel nguồn, giáo án DOCX, xuất CSV...). Đổi
+// thành true khi sẵn sàng mở lại tính năng tải về máy.
+var DOWNLOADS_ENABLED = false;
+function blockDownloadIfDisabled(){
+  if(DOWNLOADS_ENABLED) return false;
+  toast('🔒 Tính năng tải tài liệu về máy đang tạm khoá trong giai đoạn trải nghiệm. Bạn vẫn xây dựng và lưu tài liệu trong app bình thường.');
+  return true;
+}
 
 function loadChildren(){
   return apiGet('/api/children').then(function(list){ CHILDREN_LIST=list||[]; return CHILDREN_LIST; }).catch(function(){ CHILDREN_LIST=[]; return CHILDREN_LIST; });
