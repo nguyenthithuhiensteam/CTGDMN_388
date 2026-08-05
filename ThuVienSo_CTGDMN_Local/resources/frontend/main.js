@@ -1260,22 +1260,8 @@ function openPrint(){
 // ─── ỦNG HỘ TÁC GIẢ (mới, kín đáo — khung nhỏ cạnh icon, không che màn hình) ─
 // Icon vẫn kín đáo mặc định; thỉnh thoảng đập nhẹ vài giây để dễ chú ý hơn,
 // nhưng KHÔNG tự mở popup — người dùng vẫn phải tự bấm mới xem nội dung.
-function pulseDonateAttention(){
-  var btn = document.getElementById('btn-donate');
-  var panel = document.getElementById('tb-donate-panel');
-  if(!btn || (panel && panel.style.display === 'block')) return;
-  btn.classList.add('attn');
-  setTimeout(function(){ btn.classList.remove('attn'); }, 3200);
-}
-
-function toggleDonatePanel(){
-  var panel = document.getElementById('tb-donate-panel');
-  if(!panel) return;
-  var btn = document.getElementById('btn-donate');
-  if(btn) btn.classList.remove('attn');
-  if(panel.style.display === 'block'){ panel.style.display = 'none'; return; }
-  panel.innerHTML =
-    '<div class="tnp-title"><i class="ti ti-heart" style="color:var(--gdmn-red,#E84545)"></i> Ủng hộ tác giả</div>' +
+function donatePanelContent(){
+  return '<div class="tnp-title"><i class="ti ti-heart" style="color:var(--gdmn-red,#E84545)"></i> Ủng hộ tác giả</div>' +
     '<div class="donate-qr-box">' +
     '<p style="font-size:11.5px;color:var(--muted);line-height:1.6;margin:0 0 4px">' +
     'Nếu thấy app hữu ích, bạn có thể ủng hộ một chút để mình duy trì và làm tiếp. Hoàn toàn tuỳ tâm, không bắt buộc.</p>' +
@@ -1286,6 +1272,21 @@ function toggleDonatePanel(){
     '<div>VietinBank – CN Tuyên Quang</div>' +
     '</div>' +
     '</div>';
+}
+
+var _donateAutoCloseTimer = null;
+function clearDonateAutoClose(){
+  if(_donateAutoCloseTimer){ clearTimeout(_donateAutoCloseTimer); _donateAutoCloseTimer = null; }
+}
+
+function toggleDonatePanel(){
+  var panel = document.getElementById('tb-donate-panel');
+  if(!panel) return;
+  var btn = document.getElementById('btn-donate');
+  if(btn) btn.classList.remove('attn');
+  clearDonateAutoClose();
+  if(panel.style.display === 'block'){ panel.style.display = 'none'; return; }
+  panel.innerHTML = donatePanelContent();
   panel.style.display = 'block';
 }
 document.addEventListener('click', function(ev){
@@ -1293,8 +1294,29 @@ document.addEventListener('click', function(ev){
   var btn = document.getElementById('btn-donate');
   if(!panel || panel.style.display !== 'block') return;
   if(panel.contains(ev.target) || (btn && btn.contains(ev.target))) return;
+  clearDonateAutoClose();
   panel.style.display = 'none';
 });
+
+// Thỉnh thoảng TỰ MỞ popup ủng hộ vài giây để dễ chú ý hơn (thay vì chỉ nhấp
+// nháy icon) — tự đóng lại sau đó nếu người dùng không tương tác; di chuột
+// vào thì giữ mở lâu hơn để có thời gian đọc/quét mã.
+function pulseDonateAttention(){
+  var btn = document.getElementById('btn-donate');
+  var panel = document.getElementById('tb-donate-panel');
+  if(!btn || !panel || panel.style.display === 'block') return;
+  btn.classList.add('attn');
+  setTimeout(function(){ btn.classList.remove('attn'); }, 3200);
+  panel.innerHTML = donatePanelContent();
+  panel.style.display = 'block';
+  clearDonateAutoClose();
+  _donateAutoCloseTimer = setTimeout(function(){ panel.style.display = 'none'; }, 8000);
+  panel.onmouseenter = function(){ clearDonateAutoClose(); };
+  panel.onmouseleave = function(){
+    clearDonateAutoClose();
+    _donateAutoCloseTimer = setTimeout(function(){ panel.style.display = 'none'; }, 3000);
+  };
+}
 
 
 
