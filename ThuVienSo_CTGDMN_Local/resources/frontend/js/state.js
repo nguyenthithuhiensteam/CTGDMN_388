@@ -3,7 +3,7 @@
 
 var CURRENT_ACCOUNT = null;
 var CHILDREN_LIST = [];
-var APP_VERSION = '1.1.4';
+var APP_VERSION = '1.1.5';
 
 // Giai đoạn trải nghiệm: cho phép xây dựng/lưu tài liệu trong app nhưng
 // tạm khoá tải file về máy (Excel nguồn, giáo án DOCX, xuất CSV...). Đổi

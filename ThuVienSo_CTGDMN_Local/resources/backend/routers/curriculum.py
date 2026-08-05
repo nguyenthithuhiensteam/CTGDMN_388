@@ -61,8 +61,9 @@ def competencies(age_group: str | None = Query(default=None)) -> list[dict[str, 
             result = conn.execute(
                 text(
                     """
-                    SELECT DISTINCT c.*
+                    SELECT DISTINCT c.*, d.name AS domain_name
                     FROM competencies c
+                    LEFT JOIN domains d ON d.id = c.domain_id
                     JOIN yccd y ON y.competency_id = c.id
                     JOIN age_groups ag ON ag.id = y.age_group_id
                     WHERE ag.code = :age_code OR ag.name LIKE :age_like
@@ -72,7 +73,25 @@ def competencies(age_group: str | None = Query(default=None)) -> list[dict[str, 
                 {"age_code": age_group, "age_like": f"%{age_group}%"},
             )
         else:
-            result = conn.execute(text("SELECT * FROM competencies ORDER BY code, name"))
+            result = conn.execute(
+                text(
+                    """
+                    SELECT c.*, d.name AS domain_name
+                    FROM competencies c
+                    LEFT JOIN domains d ON d.id = c.domain_id
+                    ORDER BY c.code, c.name
+                    """
+                )
+            )
+        return db.rows_as_dicts(result)
+
+
+@router.get("/api/milestones")
+def milestones(age_group: str | None = Query(default=None)) -> list[dict[str, Any]]:
+    clause, params = age_filter(age_group)
+    sql = "SELECT * FROM milestones WHERE 1=1" + clause + " ORDER BY title"
+    with db.get_connection() as conn:
+        result = conn.execute(text(sql), params)
         return db.rows_as_dicts(result)
 
 
