@@ -69,6 +69,12 @@
       <div class="tabs" id="tabs"></div>
       <div id="table-wrap">Đang tải...</div>
     </div>
+    <div class="card">
+      <h1>Dữ liệu chương trình gốc (YCCĐ/mốc phát triển)</h1>
+      <p class="sub">Nạp lại từ 2 file Excel gốc trên server. Chỉ cập nhật/bổ sung theo mã ổn định, không xóa dữ liệu lõi cũ và không đụng tới dữ liệu riêng của từng trường (trẻ, kế hoạch, tài khoản...). Dùng khi cần áp bản sửa lỗi import mới.</p>
+      <button class="btn-primary" onclick="reimportCoreData()" id="btn-reimport" style="width:auto;padding:9px 20px">Nạp lại dữ liệu chương trình gốc</button>
+      <div id="reimport-result" style="margin-top:12px;font-size:12.5px;white-space:pre-wrap"></div>
+    </div>
   </div>
 
 </div>
@@ -163,6 +169,26 @@ function act(schoolId, action){
     })
     .then(function(){ loadSchools(); })
     .catch(function(e){ alert(e.message); });
+}
+
+function reimportCoreData(){
+  if(!confirm('Nạp lại dữ liệu chương trình gốc (YCCĐ, mốc phát triển, hoạt động, rubric) từ file Excel trên server?\n\nChỉ cập nhật/bổ sung theo mã ổn định, KHÔNG xóa dữ liệu lõi cũ và không đụng tới dữ liệu riêng của từng trường.')) return;
+  var btn=document.getElementById('btn-reimport'), out=document.getElementById('reimport-result');
+  btn.disabled=true; out.textContent='Đang nạp lại, vui lòng chờ...';
+  fetch(API_BASE+'/api/superadmin/reimport-core-data', {method:'POST', headers: authHeaders()})
+    .then(function(r){
+      if(r.status === 401 || r.status === 403){ logout(); throw new Error('Phiên đăng nhập hết hạn.'); }
+      return r.json().then(function(d){ if(!r.ok) throw new Error(d.detail||'Lỗi'); return d; });
+    })
+    .then(function(d){
+      var lines=['Xong. Số bản ghi trước → sau:'];
+      Object.keys(d.before).forEach(function(k){ lines.push('  '+k+': '+d.before[k]+' → '+d.after[k]); });
+      lines.push('','Theo sheet:');
+      d.sheets.forEach(function(s){ lines.push('  '+s.sheet+': đọc '+s.read+', nạp '+s.imported+', bỏ qua '+s.skipped); });
+      out.textContent=lines.join('\n');
+    })
+    .catch(function(e){ out.textContent='Lỗi: '+e.message; })
+    .then(function(){ btn.disabled=false; });
 }
 
 if(getToken()) showDashboard();

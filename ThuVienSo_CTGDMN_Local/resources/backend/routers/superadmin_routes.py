@@ -69,3 +69,34 @@ def reject_school(school_id: int, current_user: CurrentUser = Depends(get_curren
             conn.execute(db.schools.update().where(db.schools.c.id == school_id).values(status="rejected"))
             write_audit_log(conn, school_id, None, "reject", "school", school_id, school["name"])
     return {"status": "ok"}
+
+
+@router.post("/reimport-core-data")
+def reimport_core_data(current_user: CurrentUser = Depends(get_current_user)) -> dict[str, Any]:
+    """Chạy lại import dữ liệu lõi CT388 (YCCĐ/mốc phát triển/hoạt động/rubric...)
+    từ 2 file Excel gốc. An toàn để gọi bất cứ lúc nào: chỉ upsert theo mã ổn định
+    (không xóa dữ liệu lõi cũ), không đụng tới dữ liệu riêng của từng trường
+    (trẻ, kế hoạch, tài khoản...). Dùng để áp bản sửa lỗi import (domains rác,
+    thiếu mốc phát triển nhà trẻ) vào một database đã import từ trước."""
+    require_superadmin(current_user)
+    before = db.fetch_table_counts(
+        ["domains", "yccd", "milestones", "activities", "rubrics", "competencies", "year_plans"]
+    )
+    from backend.backup import backup_database
+    from backend.import_core_excel import MG, NT, run_import
+
+    if not (MG.exists() and NT.exists()):
+        raise HTTPException(status_code=400, detail="Không tìm thấy file Excel nguồn trên server.")
+    backup_database()
+    results = run_import()
+    after = db.fetch_table_counts(
+        ["domains", "yccd", "milestones", "activities", "rubrics", "competencies", "year_plans"]
+    )
+    return {
+        "status": "ok",
+        "before": before,
+        "after": after,
+        "sheets": [
+            {"sheet": r["sheet"], "read": r["rows"], "imported": r["ok"], "skipped": r["skip"]} for r in results
+        ],
+    }

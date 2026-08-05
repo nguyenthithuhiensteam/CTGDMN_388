@@ -2,9 +2,10 @@
 
 ## Báo cáo import dữ liệu lõi CT388
 
-- Thời điểm import: `2026-08-04 15:24:47`
+- Thời điểm import: `2026-08-05 14:31:15`
 - Phạm vi: chỉ import sheet lõi; không import hồ sơ cá nhân, portfolio, bảng kiểm lớp, nhật ký quan sát.
-- Cơ chế chạy lại: xóa dữ liệu lõi cũ trong các bảng import trước khi nạp lại, để tránh trùng lặp.
+- Cơ chế chạy lại: KHÔNG xóa dữ liệu lõi cũ — mọi bảng ghi qua upsert theo mã ổn định (hoặc find-or-update theo tiêu đề), giữ nguyên id đã có, an toàn khi chạy lại nhiều lần.
+- Dọn rác từ lỗi import trước đây: xóa `1` hoạt động và `22` lĩnh vực rác đã xác nhận không còn bị tham chiếu.
 
 ## Tổng hợp theo sheet
 
@@ -17,10 +18,16 @@
 | `BoTaiLieu_MauGiao_3-6T_CT388_2026-2027.xlsx` | `KHNAM_3_4T` | 52 | 30 | 22 | Có cột Column N không rõ nhãn; đã bỏ qua các cột này. |
 | `BoTaiLieu_MauGiao_3-6T_CT388_2026-2027.xlsx` | `KHNAM_4_5T` | 52 | 30 | 22 | Có cột Column N không rõ nhãn; đã bỏ qua các cột này. |
 | `BoTaiLieu_MauGiao_3-6T_CT388_2026-2027.xlsx` | `KHNAM_5_6T` | 52 | 30 | 22 | Có cột Column N không rõ nhãn; đã bỏ qua các cột này. |
-| `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` | `6. CẦU NỐI KHUNG NL` | 6 | 6 | 0 |  |
-| `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` | `8. NGÂN HÀNG HOẠT ĐỘNG` | 101 | 95 | 6 | Có cột Column N không rõ nhãn; đã bỏ qua các cột này. |
+| `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` | `6. CẦU NỐI KHUNG NL` | 6 | 5 | 1 |  |
+| `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` | `8. NGÂN HÀNG HOẠT ĐỘNG` | 9 | 8 | 1 | Có cột Column N không rõ nhãn; đã bỏ qua các cột này. |
+| `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` | `8. NGÂN HÀNG HOẠT ĐỘNG` | 19 | 19 | 0 | Có cột Column N không rõ nhãn; đã bỏ qua các cột này. |
+| `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` | `8. NGÂN HÀNG HOẠT ĐỘNG` | 22 | 22 | 0 | Có cột Column N không rõ nhãn; đã bỏ qua các cột này. |
+| `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` | `8. NGÂN HÀNG HOẠT ĐỘNG` | 14 | 14 | 0 | Có cột Column N không rõ nhãn; đã bỏ qua các cột này. |
+| `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` | `8. NGÂN HÀNG HOẠT ĐỘNG` | 16 | 16 | 0 | Có cột Column N không rõ nhãn; đã bỏ qua các cột này. |
+| `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` | `8. NGÂN HÀNG HOẠT ĐỘNG` | 11 | 11 | 0 | Có cột Column N không rõ nhãn; đã bỏ qua các cột này. |
 | `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` | `9b. GIÁO DỤC TRONG SINH HOẠT` | 6 | 6 | 0 |  |
 | `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` | `11. RUBRIC NHÀ TRẺ` | 82 | 82 | 0 |  |
+| `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` | `2. FRAMEWORK` | 82 | 82 | 0 | Có cột Column N không rõ nhãn; đã bỏ qua các cột này. |
 
 ## Lý do bỏ qua
 
@@ -96,14 +103,12 @@
   - Dòng 61: Thiếu Lĩnh vực/Mã/Mục tiêu năm học
   - Dòng 63: Thiếu Lĩnh vực/Mã/Mục tiêu năm học
   - Dòng 64: Thiếu Lĩnh vực/Mã/Mục tiêu năm học
+### `6. CẦU NỐI KHUNG NL`
+- Dòng ghi chú cuối bảng, không phải lĩnh vực: `1` dòng
+  - Dòng 12: Dòng ghi chú cuối bảng, không phải lĩnh vực
 ### `8. NGÂN HÀNG HOẠT ĐỘNG`
-- Thiếu Mã hoặc Hoạt động gợi ý: `6` dòng
+- Thiếu Mã hoặc Hoạt động gợi ý: `1` dòng
   - Dòng 15: Thiếu Mã hoặc Hoạt động gợi ý
-  - Dòng 17: Thiếu Mã hoặc Hoạt động gợi ý
-  - Dòng 39: Thiếu Mã hoặc Hoạt động gợi ý
-  - Dòng 64: Thiếu Mã hoặc Hoạt động gợi ý
-  - Dòng 81: Thiếu Mã hoặc Hoạt động gợi ý
-  - Dòng 100: Thiếu Mã hoặc Hoạt động gợi ý
 
 ## Danh sách sheet import được
 
@@ -114,15 +119,20 @@
 - `BoTaiLieu_MauGiao_3-6T_CT388_2026-2027.xlsx` / `KHNAM_3_4T`: `30` dòng
 - `BoTaiLieu_MauGiao_3-6T_CT388_2026-2027.xlsx` / `KHNAM_4_5T`: `30` dòng
 - `BoTaiLieu_MauGiao_3-6T_CT388_2026-2027.xlsx` / `KHNAM_5_6T`: `30` dòng
-- `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` / `6. CẦU NỐI KHUNG NL`: `6` dòng
-- `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` / `8. NGÂN HÀNG HOẠT ĐỘNG`: `95` dòng
+- `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` / `6. CẦU NỐI KHUNG NL`: `5` dòng
+- `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` / `8. NGÂN HÀNG HOẠT ĐỘNG`: `8` dòng
+- `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` / `8. NGÂN HÀNG HOẠT ĐỘNG`: `19` dòng
+- `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` / `8. NGÂN HÀNG HOẠT ĐỘNG`: `22` dòng
+- `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` / `8. NGÂN HÀNG HOẠT ĐỘNG`: `14` dòng
+- `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` / `8. NGÂN HÀNG HOẠT ĐỘNG`: `16` dòng
+- `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` / `8. NGÂN HÀNG HOẠT ĐỘNG`: `11` dòng
 - `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` / `9b. GIÁO DỤC TRONG SINH HOẠT`: `6` dòng
 - `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` / `11. RUBRIC NHÀ TRẺ`: `82` dòng
+- `BoTaiLieu_NhaTre_12-36T_CT388_2026-2027_DieuChinh.xlsx` / `2. FRAMEWORK`: `82` dòng
 
 ## Danh sách sheet cần kiểm tra thủ công
 
 - Nhà trẻ: 1. ĐỒNG BỘ KẾ HOẠCH
-- Nhà trẻ: 2. FRAMEWORK
 - Nhà trẻ: 3. THƯ VIỆN SỐ
 - Nhà trẻ: 4. TRA CỨU NHANH
 - Nhà trẻ: 7. KHUNG NL TÓM TẮT
@@ -142,20 +152,20 @@
 | Bảng | Số bản ghi |
 |---|---:|
 | `age_groups` | 5 |
-| `domains` | 32 |
-| `competencies` | 120 |
+| `domains` | 10 |
+| `competencies` | 125 |
 | `qualities` | 11 |
 | `yccd` | 112 |
-| `milestones` | 336 |
-| `activities` | 127 |
+| `milestones` | 992 |
+| `activities` | 126 |
 | `rubrics` | 112 |
 | `year_plans` | 90 |
 | `month_plans` | 0 |
 | `week_plans` | 0 |
 | `day_plans` | 0 |
-| `schools` | 0 |
-| `users` | 0 |
-| `children` | 0 |
+| `schools` | 34 |
+| `users` | 34 |
+| `children` | 1 |
 | `observations` | 0 |
 | `assessments` | 0 |
 | `portfolio` | 0 |
