@@ -481,6 +481,7 @@ function renderPlanningShell(){
     html += '<button class="ga-sec-btn" style="background:var(--gdmn-green-lt,#EAF6EB);color:var(--gdmn-green,#3A9A3E)" onclick="approveActivePlan()"><i class="ti ti-circle-check"></i> Duyệt kế hoạch này</button>';
   }
   if(activePlan) html += '<span class="note ' + (activePlan.status === 'approved' ? 'ok' : 'info') + '" style="margin:0;padding:4px 10px;display:inline-flex"><i class="ti ti-' + (activePlan.status === 'approved' ? 'circle-check' : 'clock') + '"></i><div>' + (activePlan.status === 'approved' ? 'Đã duyệt' : 'Nháp') + '</div></span>';
+  if(activePlan) html += '<button class="ga-sec-btn" style="margin-left:auto" onclick="viewFullAnnualPlan()"><i class="ti ti-file-text"></i> Xem/In kế hoạch hoàn chỉnh</button>';
   html += '</div></div>';
 
   if(!activePlan){
@@ -543,6 +544,79 @@ function approveActivePlan(){
     toast('✅ Đã duyệt kế hoạch năm');
     loadPlanningPage();
   }).catch(function(e){ toast('❌ ' + e.message); });
+}
+
+// Xuất "sản phẩm" hoàn chỉnh của kế hoạch năm — 1 văn bản gộp đủ mục tiêu +
+// phiên chế 35 tuần, xem/in được ngay (không phải chỉ bảng thao tác rời rạc).
+// Mở cửa sổ in riêng như printGiaoAn() — không bị khoá bởi DOWNLOADS_ENABLED
+// vì đây là xem/in, không phải tải file.
+function viewFullAnnualPlan(){
+  var plan = PLAN_LIST.find(function(p){ return p.id === PLAN_ACTIVE_ID; });
+  if(!plan) return;
+  Promise.all([
+    apiGet('/api/plans/annual/' + PLAN_ACTIVE_ID + '/goals'),
+    apiGet('/api/plans/35-weeks?school_annual_plan_id=' + PLAN_ACTIVE_ID)
+  ]).then(function(results){
+    renderFullAnnualPlanDoc(plan, results[0] || [], results[1] || []);
+  }).catch(function(e){ toast('❌ ' + e.message); });
+}
+
+function renderFullAnnualPlanDoc(plan, goals, weeks){
+  var schoolName = (CURRENT_ACCOUNT && CURRENT_ACCOUNT.school_name) || '';
+  var teacherName = (CURRENT_ACCOUNT && CURRENT_ACCOUNT.full_name) || '';
+  var ageName = ageGroupName(plan.age_group_id) || '';
+  var todayStr = new Date().toLocaleDateString('vi-VN');
+
+  var goalsTable = !goals.length
+    ? '<p><i>Chưa có mục tiêu nào được thêm.</i></p>'
+    : '<table><thead><tr><th>STT</th><th>Mã YCCĐ</th><th>Nội dung YCCĐ</th><th>Mục tiêu phân giải</th><th>Giai đoạn</th><th>Bối cảnh/HĐ</th><th>Biểu hiện/Minh chứng</th></tr></thead><tbody>' +
+      goals.map(function(g, i){
+        return '<tr><td>' + (i + 1) + '</td><td>' + escHtml(g.yccd_code || '—') + '</td><td>' + escHtml(g.yccd_content || '—') + '</td><td>' + escHtml(g.goal_text) + '</td><td>' + escHtml(PLAN_STAGE_LABELS[g.stage] || g.stage || '—') + '</td><td>' + escHtml(g.context_text || '—') + '</td><td>' + escHtml(g.evidence_text || '—') + '</td></tr>';
+      }).join('') + '</tbody></table>';
+
+  var goalByIdMap = {};
+  goals.forEach(function(g){ goalByIdMap[g.id] = g; });
+  var weeksTable = !weeks.length
+    ? '<p><i>Chưa tạo khung 35 tuần.</i></p>'
+    : '<table><thead><tr><th>Tuần</th><th>Ngày</th><th>Chủ đề/bối cảnh</th><th>Mục tiêu trọng tâm</th></tr></thead><tbody>' +
+      weeks.map(function(w){
+        if(w.is_break) return '<tr><td colspan="4" style="text-align:center;color:#888">Nghỉ · ' + escHtml(w.date_range) + '</td></tr>';
+        var gids = [];
+        try{ gids = w.goal_ids ? JSON.parse(w.goal_ids) : []; }catch(e){ gids = []; }
+        var codes = gids.map(function(gid){ var g = goalByIdMap[gid]; return g ? (g.yccd_code || ('#' + gid)) : ''; }).filter(Boolean).join(', ');
+        return '<tr><td>' + w.week_number + '</td><td>' + escHtml(w.date_range) + '</td><td>' + escHtml(w.theme_title || '—') + '</td><td>' + escHtml(codes || '—') + '</td></tr>';
+      }).join('') + '</tbody></table>';
+
+  var html = '<!doctype html><html lang="vi"><head><meta charset="utf-8"><title>Kế hoạch giáo dục năm học – ' + escHtml(plan.title || '') + '</title>' +
+    '<style>' +
+    'body{font-family:"Be Vietnam Pro",Arial,sans-serif;padding:30px;max-width:960px;margin:0 auto;line-height:1.6;font-size:13px;color:#1a2233}' +
+    'h1{font-size:19px;text-align:center;color:#0A1F4E;margin-bottom:4px}' +
+    '.sub{text-align:center;color:#556;margin-bottom:18px;font-size:12.5px}' +
+    '.meta{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;margin-bottom:20px;padding:12px 16px;background:#F1FAF3;border-radius:10px;font-size:12.5px}' +
+    'h2{font-size:15px;color:#1A6BDB;margin:22px 0 10px;padding-bottom:5px;border-bottom:2px solid #EAF1FD}' +
+    'table{width:100%;border-collapse:collapse;margin-bottom:10px;font-size:11.5px}' +
+    'th{background:#EAF1FD;color:#1A6BDB;padding:7px 8px;text-align:left;border:1px solid #d6e4fb}' +
+    'td{padding:6px 8px;border:1px solid #e2e8f0;vertical-align:top}' +
+    '.footer{margin-top:30px;text-align:right;font-size:12px;color:#556}' +
+    '@media print{body{padding:10px}}' +
+    '</style></head><body>' +
+    '<h1>KẾ HOẠCH GIÁO DỤC NĂM HỌC</h1>' +
+    '<div class="sub">Theo Quyết định 388/QĐ-BGDĐT · ' + escHtml(plan.title || '') + '</div>' +
+    '<div class="meta">' +
+    '<div><b>Trường:</b> ' + escHtml(schoolName) + '</div>' +
+    '<div><b>Năm học:</b> ' + escHtml(plan.school_year) + '</div>' +
+    '<div><b>Độ tuổi:</b> ' + escHtml(ageName) + '</div>' +
+    '<div><b>Trạng thái:</b> ' + (plan.status === 'approved' ? 'Đã duyệt' : 'Nháp') + '</div>' +
+    '</div>' +
+    '<h2>I. Mục tiêu năm (phân giải từ YCCĐ)</h2>' + goalsTable +
+    '<h2>II. Phiên chế 35 tuần</h2>' + weeksTable +
+    '<div class="footer">Người lập: ' + escHtml(teacherName) + ' · Ngày lập: ' + todayStr + '</div>' +
+    '</body></html>';
+
+  var w = window.open('', '_blank');
+  w.document.write(html);
+  w.document.close();
+  w.focus();
 }
 
 // --- Tab: Mục tiêu năm ---
