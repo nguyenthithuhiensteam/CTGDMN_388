@@ -120,12 +120,16 @@ async function startBackendIfNeeded() {
     }
   });
 
-  for (let i = 0; i < 35; i += 1) {
+  // Lần chạy đầu tiên phải cài thư viện + nạp dữ liệu gốc từ 2 file Excel vào
+  // database rỗng — trên máy chậm hoặc bị phần mềm diệt virus quét theo thời
+  // gian thực, bước này có thể mất tới vài phút. Đợi đủ lâu (tối đa ~5 phút)
+  // thay vì báo lỗi quá sớm trong khi backend vẫn đang khởi động bình thường.
+  for (let i = 0; i < 300; i += 1) {
     if (await checkUrl(HEALTH_URL, 900)) return { reused: false };
-    await delay(500);
+    await delay(1000);
   }
 
-  throw new Error('Không khởi động được backend. Vui lòng kiểm tra Python và run_backend.bat.');
+  throw new Error('Backend khởi động quá lâu (hơn 5 phút). Vui lòng kiểm tra Python và run_backend.bat.');
 }
 
 function createWindow() {
@@ -159,6 +163,24 @@ function loadFrontend() {
   mainWindow.loadFile(indexPath);
 }
 
+function showLoadingScreen() {
+  if (!mainWindow) return;
+  mainWindow.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(`
+    <!doctype html><html lang="vi"><head><meta charset="utf-8"><title>${APP_TITLE}</title>
+    <style>
+      body{font-family:Segoe UI,Arial,sans-serif;background:#0A1F4E;color:#fff;margin:0;height:100vh;display:flex;align-items:center;justify-content:center}
+      .box{text-align:center;max-width:420px;padding:0 20px}
+      .spin{width:38px;height:38px;border:3px solid rgba(255,255,255,.25);border-top-color:#3A9A3E;border-radius:50%;margin:0 auto 18px;animation:sp 0.9s linear infinite}
+      @keyframes sp{to{transform:rotate(360deg)}}
+      h1{font-size:16px;margin:0 0 8px}
+      p{font-size:12.5px;color:rgba(255,255,255,.7);line-height:1.6;margin:0}
+    </style></head><body><div class="box"><div class="spin"></div>
+    <h1>Đang khởi động ứng dụng...</h1>
+    <p>Lần đầu mở máy có thể mất 1–2 phút để cài đặt và nạp dữ liệu.<br>Vui lòng đợi, đừng đóng cửa sổ này.</p>
+    </div></body></html>
+  `)}`);
+}
+
 function showBackendError(error) {
   if (!mainWindow) createWindow();
   const message = String(error && error.message ? error.message : error);
@@ -172,6 +194,7 @@ function showBackendError(error) {
 
 async function boot() {
   createWindow();
+  showLoadingScreen();
   try {
     await startBackendIfNeeded();
     loadFrontend();

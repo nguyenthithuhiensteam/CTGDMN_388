@@ -3,7 +3,7 @@
 
 var CURRENT_ACCOUNT = null;
 var CHILDREN_LIST = [];
-var APP_VERSION = '1.0.2';
+var APP_VERSION = '1.0.3';
 
 function loadChildren(){
   return apiGet('/api/children').then(function(list){ CHILDREN_LIST=list||[]; return CHILDREN_LIST; }).catch(function(){ CHILDREN_LIST=[]; return CHILDREN_LIST; });
