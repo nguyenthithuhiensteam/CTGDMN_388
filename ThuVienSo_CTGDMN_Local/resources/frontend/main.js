@@ -1256,11 +1256,15 @@ function openPrint(){
   openModal('In kế hoạch – '+lbl[AGE], h+'<div style="text-align:center;margin-top:16px"><button onclick="window.print()" style="background:linear-gradient(90deg,var(--pk),var(--pu));color:#fff;border:none;padding:9px 24px;border-radius:20px;font-size:13px;font-weight:700;cursor:pointer;font-family:inherit"><i class=\\"ti ti-printer\\" style=\\"font-size:15px\\"></i> In trang này</button></div>');
 }
 
-// ─── ỦNG HỘ TÁC GIẢ (mới, kín đáo — chỉ hiện khi người dùng chủ động bấm) ───
-function openDonateModal(){
-  var body =
+// ─── ỦNG HỘ TÁC GIẢ (mới, kín đáo — khung nhỏ cạnh icon, không che màn hình) ─
+function toggleDonatePanel(){
+  var panel = document.getElementById('tb-donate-panel');
+  if(!panel) return;
+  if(panel.style.display === 'block'){ panel.style.display = 'none'; return; }
+  panel.innerHTML =
+    '<div class="tnp-title"><i class="ti ti-heart" style="color:var(--gdmn-red,#E84545)"></i> Ủng hộ tác giả</div>' +
     '<div class="donate-qr-box">' +
-    '<p style="font-size:12px;color:var(--muted);line-height:1.7;margin:0 0 4px">' +
+    '<p style="font-size:11.5px;color:var(--muted);line-height:1.6;margin:0 0 4px">' +
     'Nếu thấy app hữu ích, bạn có thể ủng hộ một chút để mình duy trì và làm tiếp. Hoàn toàn tuỳ tâm, không bắt buộc.</p>' +
     '<img src="assets/donate-qr.png" alt="" onerror="this.style.display=\'none\'">' +
     '<div class="donate-info">' +
@@ -1269,8 +1273,15 @@ function openDonateModal(){
     '<div>VietinBank – CN Tuyên Quang</div>' +
     '</div>' +
     '</div>';
-  openModal('Ủng hộ tác giả', body);
+  panel.style.display = 'block';
 }
+document.addEventListener('click', function(ev){
+  var panel = document.getElementById('tb-donate-panel');
+  var btn = document.getElementById('btn-donate');
+  if(!panel || panel.style.display !== 'block') return;
+  if(panel.contains(ev.target) || (btn && btn.contains(ev.target))) return;
+  panel.style.display = 'none';
+});
 
 
 
