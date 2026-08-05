@@ -2574,7 +2574,6 @@ function renderNurseryRecordPanel(){
 }
 
 // CT388 Kindergarten UI renderers - minh hoa, chua ket noi API
-var KG_YEAR_TAB = '3-4';
 var KG_RECORD_TAB = 'class-check';
 var KG_ACTIVITY_FILTER = 'all';
 var KG_RUBRIC_FILTER = 'all';
@@ -2624,25 +2623,21 @@ function renderKindergartenMilestones(){
     '<div class="kg-table-wrap"><table class="kg-table"><thead><tr><th>Mã/YCCĐ</th><th>Biểu hiện 3–4</th><th>Biểu hiện 4–5</th><th>Biểu hiện 5–6</th><th>Minh chứng</th><th>Gợi ý hỗ trợ</th></tr></thead><tbody>'+rows.map(function(r){return '<tr><td>Mã minh họa</td><td>'+r+' ở mức hình thành.</td><td>'+r+' được củng cố.</td><td>'+r+' vững hơn trong bối cảnh đa dạng.</td><td>Ảnh/video, sản phẩm, câu nói.</td><td>Chia nhỏ nhiệm vụ, tăng lựa chọn, hỗ trợ theo nhu cầu.</td></tr>';}).join('')+'</tbody></table></div>';
 }
 
+// Trước đây 2 trang này là demo tĩnh riêng (Kế hoạch năm / Phiên chế 35 tuần
+// cho mẫu giáo) — nay đã có 1 nơi duy nhất làm việc này thật (mục "Lập kế
+// hoạch giáo dục" ở menu chính, đọc/ghi qua /api/plans/*). Giữ lại 2 trang
+// này chỉ để dẫn đúng hướng, tránh 2 nơi làm cùng 1 việc gây nhầm lẫn.
 function renderKindergartenYearPlan(){
   var p=document.getElementById('p-mg-year-plan'); if(!p) return;
-  var tabs=[['3-4','3–4 tuổi'],['4-5','4–5 tuổi'],['5-6','5–6 tuổi']];
-  p.innerHTML='<div class="pg-h"><div class="pg-title">Kế hoạch năm mẫu giáo</div><div class="pg-sub">Kế hoạch năm theo từng nhóm tuổi, giáo viên vẫn điều chỉnh theo thực tế lớp.</div></div>'+kindergartenDemoNotice()+kindergartenPrincipleNotice()+
-    '<div class="tabs kg-tabs">'+tabs.map(function(t){return '<button class="tab '+(KG_YEAR_TAB===t[0]?'on':'')+'" onclick="kgYearTab(\''+t[0]+'\')">'+t[1]+'</button>';}).join('')+'</div><div id="kg-year-panel"></div>';
-  renderKgYearPanel();
+  p.innerHTML='<div class="pg-h"><div class="pg-title">Kế hoạch năm mẫu giáo</div><div class="pg-sub">Xây dựng mục tiêu năm thật ở mục "Lập kế hoạch giáo dục"</div></div>'+
+    '<div class="note info"><i class="ti ti-info-circle"></i><div>Việc lập mục tiêu năm (liên thông từ YCCĐ) đã chuyển sang mục <b>"Lập kế hoạch giáo dục"</b> ở menu chính — có thể tạo, sửa và duyệt kế hoạch năm thật ở đó, không còn là bản demo.</div></div>'+
+    '<button class="ga-main-btn" onclick="goPage(\'kh\')" style="margin-top:12px"><i class="ti ti-arrow-right"></i> Vào Lập kế hoạch giáo dục</button>';
 }
-function kgYearTab(tab){KG_YEAR_TAB=tab;renderKindergartenYearPlan();}
-function renderKgYearPanel(){
-  var panel=document.getElementById('kg-year-panel'); if(!panel) return;
-  var sections=['Đặc điểm phát triển','Mục tiêu năm','Phẩm chất/năng lực trọng tâm','Cấu trúc hoạt động','Điều chỉnh hỗ trợ'];
-  panel.innerHTML='<div class="kg-accordion">'+sections.map(function(s,i){return '<details '+(i===0?'open':'')+'><summary>'+s+'<i class="ti ti-chevron-down"></i></summary><p>Dữ liệu minh họa cho nhóm '+KG_YEAR_TAB+' tuổi – sẽ thay bằng dữ liệu từ Excel sau khi import. Nội dung được giữ ngắn để không dồn quá nhiều thông tin lên một màn hình.</p></details>';}).join('')+'</div>';
-}
-
 function renderKindergartenWeeks(){
   var p=document.getElementById('p-mg-35-weeks'); if(!p) return;
-  var rows=[1,2,3,4,5,6].map(function(n){return '<tr><td>Tuần '+n+'</td><td>Giai đoạn minh họa</td><td>Chủ đề lớn</td><td>Chủ đề nhánh</td><td>Trục năng lực</td><td>Gợi ý 3–4</td><td>Gợi ý 4–5</td><td>Gợi ý 5–6</td><td>Minh chứng</td><td><button class="kg-mini-btn" onclick="toast(\'Demo: sẽ tạo kế hoạch tuần sau khi có dữ liệu thật\')">Dùng tuần này</button></td></tr>';}).join('');
-  p.innerHTML='<div class="pg-h"><div class="pg-title">Phiên chế 35 tuần</div><div class="pg-sub">Chủ đề là bối cảnh trải nghiệm, mục tiêu phát triển mới là trung tâm.</div></div>'+kindergartenDemoNotice()+kindergartenPrincipleNotice()+
-    '<div class="kg-table-wrap"><table class="kg-table kg-week-table"><thead><tr><th>Tuần</th><th>Giai đoạn</th><th>Chủ đề lớn</th><th>Chủ đề nhánh</th><th>Trục năng lực</th><th>Gợi ý 3–4</th><th>Gợi ý 4–5</th><th>Gợi ý 5–6</th><th>Minh chứng</th><th>Thao tác</th></tr></thead><tbody>'+rows+'</tbody></table></div>';
+  p.innerHTML='<div class="pg-h"><div class="pg-title">Phiên chế 35 tuần</div><div class="pg-sub">Tạo khung 35 tuần thật ở mục "Lập kế hoạch giáo dục"</div></div>'+
+    '<div class="note info"><i class="ti ti-info-circle"></i><div>Việc phiên chế 35 tuần (tự sinh khung theo ngày thật, gắn mục tiêu trọng tâm từng tuần) đã chuyển sang mục <b>"Lập kế hoạch giáo dục"</b> ở menu chính, trong kế hoạch năm tương ứng — không còn là bản demo.</div></div>'+
+    '<button class="ga-main-btn" onclick="goPage(\'kh\')" style="margin-top:12px"><i class="ti ti-arrow-right"></i> Vào Lập kế hoạch giáo dục</button>';
 }
 
 function renderKindergartenActivities(){
