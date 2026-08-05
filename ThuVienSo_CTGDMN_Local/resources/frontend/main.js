@@ -1258,9 +1258,21 @@ function openPrint(){
 }
 
 // ─── ỦNG HỘ TÁC GIẢ (mới, kín đáo — khung nhỏ cạnh icon, không che màn hình) ─
+// Icon vẫn kín đáo mặc định; thỉnh thoảng đập nhẹ vài giây để dễ chú ý hơn,
+// nhưng KHÔNG tự mở popup — người dùng vẫn phải tự bấm mới xem nội dung.
+function pulseDonateAttention(){
+  var btn = document.getElementById('btn-donate');
+  var panel = document.getElementById('tb-donate-panel');
+  if(!btn || (panel && panel.style.display === 'block')) return;
+  btn.classList.add('attn');
+  setTimeout(function(){ btn.classList.remove('attn'); }, 3200);
+}
+
 function toggleDonatePanel(){
   var panel = document.getElementById('tb-donate-panel');
   if(!panel) return;
+  var btn = document.getElementById('btn-donate');
+  if(btn) btn.classList.remove('attn');
   if(panel.style.display === 'block'){ panel.style.display = 'none'; return; }
   panel.innerHTML =
     '<div class="tnp-title"><i class="ti ti-heart" style="color:var(--gdmn-red,#E84545)"></i> Ủng hộ tác giả</div>' +
@@ -2906,6 +2918,9 @@ function bootApp(){
   updateTopbarUser();
   initStatusBar();
   checkNotificationsDot();
+  setInterval(checkNotificationsDot, 45000);
+  setTimeout(pulseDonateAttention, 60000);
+  setInterval(pulseDonateAttention, 240000);
   renderHomeDashboard();
 }
 
@@ -3056,28 +3071,11 @@ function renderHomeTodo(){
   }).join('');
 }
 
-function renderHomeActivity(){
-  var el = document.getElementById('home-activity');
-  if(!el) return;
-  apiGet('/api/audit-log?limit=6').then(function(list){
-    if(!list || !list.length){ el.innerHTML = '<div class="note info"><i class="ti ti-info-circle"></i><div>Chưa có hoạt động nào được ghi nhận.</div></div>'; return; }
-    el.innerHTML = list.map(function(a){
-      return '<div class="wd-activity-item"><span class="wd-activity-dot"></span><div>' +
-        '<div>' + escHtml(auditActionLabel(a)) + '</div>' +
-        '<div class="wd-activity-meta">' + escHtml(a.user_name || '') + ' · ' + escHtml(formatAuditTime(a.created_at)) + '</div>' +
-        '</div></div>';
-    }).join('');
-  }).catch(function(){
-    el.innerHTML = '<div class="note warn"><i class="ti ti-alert-circle"></i><div>Không tải được hoạt động gần đây.</div></div>';
-  });
-}
-
 function renderHomeDashboard(){
   renderHomeWelcome();
   renderHomeOverviewCards();
   renderHomeStepper();
   renderHomeTodo();
-  renderHomeActivity();
 }
 
 // ─── TOPBAR: tài khoản, thông báo (GĐ2) ────────────────────────────────────
@@ -3137,12 +3135,23 @@ document.addEventListener('click', function(ev){
 });
 function checkNotificationsDot(){
   apiGet('/api/audit-log?limit=1').then(function(list){
+    if(!list || !list.length) return;
+    var latestItem = list[0];
+    var latest = new Date(latestItem.created_at.endsWith('Z') ? latestItem.created_at : latestItem.created_at + 'Z').getTime();
     var dot = document.getElementById('tb-notify-dot');
-    if(!dot || !list || !list.length) return;
-    var lastSeen = 0;
-    try { lastSeen = Number(localStorage.getItem('gdmn_notify_seen') || 0); } catch(e){}
-    var latest = new Date(list[0].created_at.endsWith('Z') ? list[0].created_at : list[0].created_at + 'Z').getTime();
-    dot.style.display = latest > lastSeen ? 'block' : 'none';
+    if(dot){
+      var lastSeen = 0;
+      try { lastSeen = Number(localStorage.getItem('gdmn_notify_seen') || 0); } catch(e){}
+      dot.style.display = latest > lastSeen ? 'block' : 'none';
+    }
+    // Popup nhỏ (toast) khi có hoạt động MỚI kể từ lần kiểm tra trước — thay
+    // cho khối "Hoạt động gần đây" cố định trên trang chủ trước đây.
+    var lastToasted = 0;
+    try { lastToasted = Number(localStorage.getItem('gdmn_last_toast_ts') || 0); } catch(e){}
+    if(lastToasted && latest > lastToasted){
+      toast('🔔 ' + auditActionLabel(latestItem));
+    }
+    try { localStorage.setItem('gdmn_last_toast_ts', String(latest)); } catch(e){}
   }).catch(function(){});
 }
 

@@ -114,19 +114,16 @@
     </div>
   </div>
 
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px">
-    <div class="card">
-      <div class="card-hdr"><div class="card-ttl"><i class="ti ti-checklist"></i>Công việc cần hoàn thành</div></div>
-      <div class="card-body">
-        <div class="note info" style="margin-bottom:10px"><i class="ti ti-info-circle"></i><div>Dữ liệu minh họa – chưa nối bảng công việc thật.</div></div>
-        <div id="home-todo"></div>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-hdr"><div class="card-ttl"><i class="ti ti-history"></i>Hoạt động gần đây</div></div>
-      <div class="card-body" id="home-activity">Đang tải...</div>
+  <div class="card" style="margin-bottom:14px">
+    <div class="card-hdr"><div class="card-ttl"><i class="ti ti-checklist"></i>Công việc cần hoàn thành</div></div>
+    <div class="card-body">
+      <div class="note info" style="margin-bottom:10px"><i class="ti ti-info-circle"></i><div>Dữ liệu minh họa – chưa nối bảng công việc thật.</div></div>
+      <div id="home-todo"></div>
     </div>
   </div>
+  <!-- "Hoạt động gần đây" không còn hiện thành khối cố định trên trang chủ —
+       thay bằng thông báo popup nhỏ (toast) khi có hoạt động mới + chuông
+       thông báo trên topbar. Lịch sử đầy đủ vẫn xem được qua chuông đó. -->
 
   <!-- Giới thiệu chương trình (nội dung trang chủ trước GĐ2, giữ nguyên bên dưới bàn làm việc) -->
   <div class="hero">
@@ -639,7 +636,7 @@
   <span class="sb-spacer"></span>
   <span class="sb-item sb-footer">NGUYỄN THU HIỀN – HỌC BẰNG CHIA SẺ</span>
   <span class="sb-sep">|</span>
-  <span class="sb-item" id="sb-app-version">v1.0.5</span>
+  <span class="sb-item" id="sb-app-version">v1.0.6</span>
 </div>
 
 <!-- AUTH OVERLAY (đăng nhập / đăng ký trường) -->
